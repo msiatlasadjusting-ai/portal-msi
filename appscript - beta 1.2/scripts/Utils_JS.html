@@ -1,0 +1,171 @@
+<!-- FILE: scripts/Utils_JS.html -->
+<script>
+  /**
+   * =========================================================
+   * SHARED UTILITY & HELPER FUNCTIONS
+   * =========================================================
+   * Berisi fungsi-fungsi utilitas terpusat untuk memformat
+   * angka/mata uang, manipulasi tanggal, pencarian properti objek,
+   * dan validasi nilai di seluruh frontend client-side.
+   */
+
+  // =========================================================
+  // 1. FORMATTER ANGKA & MATA UANG
+  // =========================================================
+
+  /**
+   * Memformat angka integer/float dengan separator titik ribuan (Contoh: 1500000 -> 1.500.000)
+   */
+  function formatNumberWithDots(num) {
+    if (num === null || num === undefined || num === '' || isNaN(Number(num))) {
+      return '0';
+    }
+    var n = Number(num);
+    var isNegative = n < 0;
+    var absolute = Math.abs(Math.round(n));
+    var formatted = absolute.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return isNegative ? '-' + formatted : formatted;
+  }
+
+  /**
+   * Memformat angka ke format Rupiah (Contoh: 1500000 -> "Rp 1.500.000" atau "1.500.000")
+   */
+  function formatRupiah(num, withPrefix) {
+    if (withPrefix === undefined) withPrefix = true;
+    if (num === null || num === undefined || num === '' || isNaN(Number(num))) {
+      return withPrefix ? 'Rp 0' : '0';
+    }
+    var formatted = formatNumberWithDots(num);
+    return withPrefix ? 'Rp ' + formatted : formatted;
+  }
+
+  /**
+   * Helper format Rupiah khusus untuk ekspor dataset Excel
+   */
+  function formatRupiahExcel(val) {
+    var num = parseFloat(val);
+    if (isNaN(num) || num === 0) return "Rp 0";
+    
+    var isNegative = num < 0;
+    var absNum = Math.abs(num);
+    var formatted = "Rp " + absNum.toLocaleString('id-ID');
+    
+    return isNegative ? "(" + formatted + ")" : formatted;
+  }
+
+  /**
+   * Parsing string mata uang/angka menjadi float/integer murni
+   */
+  function parseMoneyValue(val) {
+    if (val === null || val === undefined || val === '') return 0;
+    if (typeof val === 'number') return val;
+    var cleanStr = String(val).replace(/\./g, '').replace(/,/g, '').replace(/[^0-9\-]/g, '');
+    var num = Number(cleanStr);
+    return isNaN(num) ? 0 : num;
+  }
+
+  /**
+   * Event handler otomatis untuk input form berformat mata uang
+   */
+  function formatCurrencyInput(el, prefix) {
+    if (!el) return;
+    var raw = el.value.replace(/\D/g, '');
+    if (raw === '') {
+      el.value = '';
+    } else {
+      var n = Number(raw);
+      el.value = n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+    if (typeof calculateFormulas === 'function') {
+      calculateFormulas(prefix);
+    }
+  }
+
+  // =========================================================
+  // 2. VALIDASI & MANIPULASI TANGGAL / SLA
+  // =========================================================
+
+  /**
+   * Validasi string nilai umum (bukan null, kosong, placeholder dash)
+   */
+  function isValidValue(val) {
+    if (val === null || val === undefined) return false;
+    var str = String(val).trim();
+    return str !== "" && str !== "-" && str !== "mm/dd/yyyy";
+  }
+
+  /**
+   * Validasi apakah string merupakan tanggal yang valid
+   */
+  function isValidDateStr(str) {
+    if (!str || str === '-' || String(str).trim() === '' || String(str).trim() === 'mm/dd/yyyy') return false;
+    var d = new Date(str);
+    return !isNaN(d.getTime());
+  }
+
+  /**
+   * Menambahkan sejumlah hari ke string tanggal dan mengembalikan format YYYY-MM-DD
+   */
+  function addDaysToDate(dateStr, days) {
+    if (!isValidDateStr(dateStr)) return '-';
+    var d = new Date(dateStr);
+    d.setDate(d.getDate() + days);
+    var yyyy = d.getFullYear();
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var dd = String(d.getDate()).padStart(2, '0');
+    return yyyy + '-' + mm + '-' + dd;
+  }
+
+  /**
+   * Menghitung selisih hari dari target date ke hari ini (00:00:00)
+   */
+  function getDaysDiffFromToday(targetDateStr) {
+    if (!isValidDateStr(targetDateStr)) return null;
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    var target = new Date(targetDateStr);
+    target.setHours(0, 0, 0, 0);
+    
+    var diffTime = target.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  // =========================================================
+  // 3. OBJECT ACCESSOR HELPER
+  // =========================================================
+
+  /**
+   * Mengambil nilai dari objek berdasarkan kumpulan kemungkinan key/nama kolom
+   */
+  function getVal(item, possibleKeys, defaultVal) {
+    if (defaultVal === undefined) defaultVal = '';
+    if (!item || typeof item !== 'object') return defaultVal;
+
+    var keys = Array.isArray(possibleKeys) ? possibleKeys : [possibleKeys];
+
+    // 1. Direct key lookup
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i];
+      if (item.hasOwnProperty(k) && item[k] !== "" && item[k] !== null && item[k] !== undefined && item[k] !== "-") {
+        return item[k];
+      }
+    }
+
+    // 2. Normalized lowercase alphanumeric lookup
+    for (var i = 0; i < keys.length; i++) {
+      var pkNorm = String(keys[i]).toLowerCase().replace(/[^a-z0-9]/g, '');
+      for (var key in item) {
+        if (!item.hasOwnProperty(key)) continue;
+        var keyNorm = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (keyNorm === pkNorm) {
+          var val = item[key];
+          if (val !== "" && val !== null && val !== undefined && val !== "-") {
+            return val;
+          }
+        }
+      }
+    }
+    return defaultVal;
+  }
+</script>

@@ -1,0 +1,991 @@
+<!-- FILE: scripts/Mastercase_Form_JS.html -->
+<script>
+  // =========================================================
+  // MASTERCASE FORM & ACTION CONTROLLER
+  // Penanganan submit form Create & Edit, kalkulasi otomatis formula keuangan, generasi Ref MSI, dan cetak PDF
+  // =========================================================
+
+  var rawJobData = [];
+  var nextGlobalJobNumber = 8001;
+  var currentDetailRowIndex = null;
+  var globalPicList = [];
+  var globalAgentList = [];
+
+  document.addEventListener("DOMContentLoaded", function () {
+    setupFormListener();
+    setupCalculations();
+    loadDropdownOptions();
+  });
+
+  // =========================================================
+  // LOAD DROPDOWN OPTIONS
+  // Memuat opsi pilihan PIC dan Agent/Broker dari backend
+  // =========================================================
+  function loadDropdownOptions() {
+    if (typeof google === "undefined" || !google.script || !google.script.run) return;
+
+    google.script.run
+      .withSuccessHandler(function (response) {
+        if (response && response.success) {
+          globalPicList = response.pic || [];
+          globalAgentList = response.agent || [];
+
+          populatePicSelect("create_pic", globalPicList, "-- Pilih PIC --");
+          populatePicSelect("edit_pic", globalPicList, "-- Pilih PIC --");
+          populatePicSelect("filterPIC", globalPicList, "Semua PIC");
+          populatePicSelect("filterPICFinance", globalPicList, "Semua PIC");
+
+          populatePicSelect("create_stage2PicHandler", globalPicList, "-- Default Lead PIC --");
+          populatePicSelect("edit_stage2PicHandler", globalPicList, "-- Default Lead PIC --");
+          populatePicSelect("create_stage3PicHandler", globalPicList, "-- Default Lead PIC --");
+          populatePicSelect("edit_stage3PicHandler", globalPicList, "-- Default Lead PIC --");
+          populatePicSelect("create_stage4PicHandler", globalPicList, "-- Default Lead PIC --");
+          populatePicSelect("edit_stage4PicHandler", globalPicList, "-- Default Lead PIC --");
+          populatePicSelect("create_stage5PicHandler", globalPicList, "-- Default Finance / Lead PIC --");
+          populatePicSelect("edit_stage5PicHandler", globalPicList, "-- Default Finance / Lead PIC --");
+
+          populateAgentSelect("create_broker", globalAgentList, "-- Pilih Agent / Broker --");
+          populateAgentSelect("edit_broker", globalAgentList, "-- Pilih Agent / Broker --");
+        }
+      })
+      .getDropdownMasterData();
+  }
+
+  // =========================================================
+  // POPULATE PIC SELECT
+  // Mengisi elemen select HTML dengan opsi PIC
+  // =========================================================
+  function populatePicSelect(selectId, picArray, defaultText) {
+    var selectEl = document.getElementById(selectId);
+    if (!selectEl || !picArray) return;
+
+    var currentVal = selectEl.value;
+    var html = '<option value="">' + defaultText + '</option>';
+    picArray.forEach(function (item) {
+      html += '<option value="' + item.code + '">' + item.name + '</option>';
+    });
+    selectEl.innerHTML = html;
+    if (currentVal) selectEl.value = currentVal;
+  }
+
+  // =========================================================
+  // POPULATE AGENT SELECT
+  // Mengisi elemen select HTML dengan opsi Agent / Broker
+  // =========================================================
+  function populateAgentSelect(selectId, agentArray, defaultText) {
+    var selectEl = document.getElementById(selectId);
+    if (!selectEl || !agentArray) return;
+
+    var currentVal = selectEl.value;
+    var html = '<option value="">' + defaultText + '</option>';
+    agentArray.forEach(function (agentName) {
+      html += '<option value="' + agentName + '">' + agentName + '</option>';
+    });
+    selectEl.innerHTML = html;
+    if (currentVal) selectEl.value = currentVal;
+  }
+
+  // =========================================================
+  // SETUP CALCULATIONS
+  // Memasang event listener pemicu kalkulasi formula keuangan pada form Create & Edit
+  // =========================================================
+  function setupCalculations() {
+    var prefixes = ['create', 'edit'];
+    var triggerFields = ['feeIdr', 'iouIdr', 'expensesAct', 'adminCost', 'expenses', 'load', 'clientPayment'];
+
+    prefixes.forEach(function (prefix) {
+      triggerFields.forEach(function (field) {
+        var el = document.getElementById(prefix + '_' + field);
+        if (el) {
+          el.addEventListener('input', function () {
+            formatCurrencyInput(this, prefix);
+          });
+          el.addEventListener('keyup', function () {
+            calculateFormulas(prefix);
+          });
+        }
+      });
+    });
+  }
+
+  // =========================================================
+  // CALCULATE FORMULAS
+  // Menghitung Tax Basis, VAT 11%, Gross Invoice, PPh 23, Net Payment, Selisih, dan Reimburse
+  // =========================================================
+  function calculateFormulas(prefix) {
+    var prefixes = prefix ? [prefix] : ['create', 'edit'];
+
+    prefixes.forEach(function (p) {
+      var feeEl = document.getElementById(p + '_feeIdr');
+      if (!feeEl && !document.getElementById(p + '_expensesAct')) return;
+
+      var fee = parseMoneyValue(document.getElementById(p + '_feeIdr')?.value);
+      var iou = parseMoneyValue(document.getElementById(p + '_iouIdr')?.value);
+      var expAct = parseMoneyValue(document.getElementById(p + '_expensesAct')?.value);
+      var expenses = parseMoneyValue(document.getElementById(p + '_expenses')?.value);
+      var clientPayment = parseMoneyValue(document.getElementById(p + '_clientPayment')?.value);
+
+      var taxBasis = Math.round(fee * (11 / 12));
+      var vat11 = Math.round(fee * 0.11);
+      var invoiceAmount = fee + expenses + vat11;
+      var pph23 = Math.round(fee * 0.02);
+      var netPayment = invoiceAmount - pph23;
+      var selisih = clientPayment - netPayment;
+      var reimburseSettled = iou - expAct;
+
+      var setVal = function (id, val) {
+        var el = document.getElementById(id);
+        if (el) el.value = val;
+      };
+
+      setVal(p + '_taxBasisIdr', formatNumberWithDots(taxBasis));
+      setVal(p + '_vat11', formatNumberWithDots(vat11));
+      setVal(p + '_invoiceAmount', formatNumberWithDots(invoiceAmount));
+      setVal(p + '_pph23', formatNumberWithDots(pph23));
+      setVal(p + '_invoicePaymentNetPph23', formatNumberWithDots(netPayment));
+      setVal(p + '_selisih', formatNumberWithDots(selisih));
+      setVal(p + '_reimburseSettled', formatNumberWithDots(reimburseSettled));
+    });
+  }
+
+  // =========================================================
+  // PREPARE CREATE FORM
+  // Menyiapkan form Tambah Mastercase baru dengan nilai default dan nomor job otomatis
+  // =========================================================
+  function prepareCreateForm() {
+    var form = document.getElementById('mastercaseCreateForm');
+    if (form) form.reset();
+
+    var jobInput = document.getElementById('create_jobNumber');
+    if (jobInput) {
+      jobInput.value = nextGlobalJobNumber || 8001;
+    }
+    var refMsiInput = document.getElementById('create_refMsi');
+    if (refMsiInput && (!refMsiInput.value || refMsiInput.value === '')) {
+      refMsiInput.value = nextGlobalJobNumber || 8001;
+    }
+
+    ['create_stage2PicHandler', 'create_stage3PicHandler', 'create_stage4PicHandler', 'create_stage5PicHandler'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) {
+        el.dataset.userModified = "false";
+        el.value = "";
+      }
+    });
+
+    var statusInput = document.getElementById('create_status');
+    if (statusInput) {
+      statusInput.dataset.userModified = "false";
+      statusInput.value = 'On Process';
+    }
+
+    if (typeof resetCreateWizard === 'function') {
+      resetCreateWizard();
+    }
+    calculateFormulas('create');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  // =========================================================
+  // GET REF MSI COMPONENTS
+  // Mendapatkan kode klasifikasi LOB dan tipe Marine/Non-Marine
+  // =========================================================
+  function getRefMsiComponents(lobValue) {
+    var lobMap = {
+      "Heavy Equipment / MV": { type: "NM", code: "HE" },
+      "Marine Cargo": { type: "M", code: "MC" },
+      "Marine Hull": { type: "M", code: "MH" },
+      "Marine P&I": { type: "M", code: "PI" },
+      "Marine & Carrier Liability": { type: "M", code: "FFL" },
+      "Property (PAR / IAR)": { type: "NM", code: "PAR" },
+      "Property Engineering": { type: "NM", code: "ENG" },
+      "Power Plant / Energy": { type: "NM", code: "ENG" },
+      "Business Interruption (BI / ALOP / DSU)": { type: "NM", code: "BI" },
+      "Machinery Breakdown (MB)": { type: "NM", code: "MB" },
+      "General & Product Liability (CGL)": { type: "NM", code: "CGL" },
+      "Financial & Pecuniary Losses": { type: "NM", code: "FIN" },
+      "Fidelity Guarantee & Money Insurance": { type: "NM", code: "FG" },
+      "Catastrophic Losses": { type: "NM", code: "CAT" },
+      "Pre-Shipment": { type: "NM", code: "PSI" }
+    };
+
+    if (lobMap[lobValue]) {
+      return lobMap[lobValue];
+    }
+
+    var clean = String(lobValue || "").toUpperCase();
+    if (clean.indexOf("MARINE") !== -1) {
+      return { type: "M", code: "MAR" };
+    }
+    return { type: "NM", code: "GEN" };
+  }
+
+  // =========================================================
+  // GENERATE REF MSI STRING
+  // Membuat string nomor referensi MSI terstandar (contoh: 8001/MSI-NM/HE/IX/2026)
+  // =========================================================
+  function generateRefMsiString(jobNo, lobValue, instructionDateStr) {
+    var safeJobNo = jobNo ? String(jobNo).trim() : "8001";
+    var comps = getRefMsiComponents(lobValue);
+
+    var d = instructionDateStr ? new Date(instructionDateStr) : new Date();
+    if (isNaN(d.getTime())) d = new Date();
+
+    var monthNum = d.getMonth() + 1;
+    var year = d.getFullYear();
+
+    return safeJobNo + "/" + comps.type + "/" + monthNum + "/" + year + "/" + comps.code;
+  }
+
+  // =========================================================
+  // UPDATE AUTO REF MSI
+  // Menghasilkan nomor Ref MSI otomatis saat input Job Number, LOB, atau Instruction Date berubah
+  // =========================================================
+  function updateAutoRefMsiCreate() {
+    var jobNo = document.getElementById('create_jobNumber')?.value;
+    var lob = document.getElementById('create_lob')?.value;
+    var instDate = document.getElementById('create_instructionDate')?.value;
+    var refInput = document.getElementById('create_refMsi');
+
+    if (refInput) {
+      refInput.readOnly = true;
+      refInput.classList.add('bg-slate-100', 'cursor-not-allowed', 'font-mono', 'font-bold');
+
+      if (jobNo && lob && instDate) {
+        refInput.value = generateRefMsiString(jobNo, lob, instDate);
+      } else {
+        refInput.value = "[ Preview Ref MSI ]";
+      }
+    }
+  }
+
+  function updateAutoRefMsiEdit() {
+    var jobNo = document.getElementById('edit_jobNumber')?.value;
+    var lob = document.getElementById('edit_lob')?.value;
+    var instDate = document.getElementById('edit_instructionDate')?.value;
+    var refInput = document.getElementById('edit_refMsi');
+
+    if (refInput && jobNo && lob) {
+      var curVal = refInput.value;
+      if (!curVal || curVal.indexOf('/MSI-') === -1) {
+        refInput.value = generateRefMsiString(jobNo, lob, instDate);
+      }
+    }
+  }
+
+  // =========================================================
+  // SETUP FORM LISTENER
+  // Menginisialisasi event submit dan perubahan tanggal pada form Create & Edit
+  // =========================================================
+  function setupFormListener() {
+    setupCreateFormListener();
+    setupEditFormListener();
+  }
+
+  function setupCreateFormListener() {
+    var createForm = document.getElementById('mastercaseCreateForm');
+    if (!createForm) return;
+
+    document.getElementById('create_jobNumber')?.addEventListener('input', updateAutoRefMsiCreate);
+    document.getElementById('create_lob')?.addEventListener('change', updateAutoRefMsiCreate);
+    document.getElementById('create_instructionDate')?.addEventListener('change', updateAutoRefMsiCreate);
+
+    document.getElementById('create_surveyFinishDate')?.addEventListener('change', function () {
+      var reportStartEl = document.getElementById('create_reportPreparationStartDate');
+      if (reportStartEl) {
+        reportStartEl.value = this.value;
+      }
+    });
+
+    document.getElementById('create_surveyReportSentOn')?.addEventListener('change', function () {
+      var lopStartEl = document.getElementById('create_lopStartDate');
+      if (lopStartEl) {
+        lopStartEl.value = this.value;
+      }
+    });
+
+    createForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      var instDate = document.getElementById('create_instructionDate')?.value;
+      var pic = document.getElementById('create_pic')?.value;
+      var lob = document.getElementById('create_lob')?.value;
+
+      if (!instDate || !pic || !lob) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Field Wajib Belum Diisi!',
+          text: 'Mohon isi Instruction Date, Lead PIC, dan Line of Business (LOB) terlebih dahulu.',
+          confirmButtonColor: '#EC1F27'
+        });
+        return;
+      }
+
+      var formData = {
+        jobNumber: document.getElementById('create_jobNumber')?.value || '',
+        instructionDate: document.getElementById('create_instructionDate')?.value || '',
+        pic: document.getElementById('create_pic')?.value || '',
+        refMsi: document.getElementById('create_refMsi')?.value || '',
+        refClient: document.getElementById('create_refClient')?.value || '',
+        client: document.getElementById('create_client')?.value || '',
+        broker: document.getElementById('create_broker')?.value || '',
+        ownerCustomer: document.getElementById('create_ownerCustomer')?.value || '',
+        clientOfficeLocation: document.getElementById('create_clientOfficeLocation')?.value || '',
+        clientPicPerson: document.getElementById('create_clientPicPerson')?.value || '',
+        typeOfSurvey: document.getElementById('create_typeOfSurvey')?.value || '',
+        lob: document.getElementById('create_lob')?.value || '',
+        accident: document.getElementById('create_accident')?.value || '',
+        location: document.getElementById('create_location')?.value || '',
+        objectVesselUnit: document.getElementById('create_objectVesselUnit')?.value || '',
+        dol: document.getElementById('create_dol')?.value || '',
+
+        surveyStartDate: document.getElementById('create_surveyStartDate')?.value || '',
+        surveyFinishDate: document.getElementById('create_surveyFinishDate')?.value || '',
+        stage2PicHandler: document.getElementById('create_stage2PicHandler')?.value || '',
+        reportPreparationStartDate: document.getElementById('create_reportPreparationStartDate')?.value || '',
+        surveyReportSentOn: document.getElementById('create_surveyReportSentOn')?.value || '',
+        stage3PicHandler: document.getElementById('create_stage3PicHandler')?.value || '',
+        stage3Remarks: document.getElementById('create_stage3Remarks')?.value || '',
+        lopStartDate: document.getElementById('create_lopStartDate')?.value || '',
+        lopApprovedDate: document.getElementById('create_lopApprovedDate')?.value || '',
+        stage4PicHandler: document.getElementById('create_stage4PicHandler')?.value || '',
+        stage4Remarks: document.getElementById('create_stage4Remarks')?.value || '',
+        invoiceDate: document.getElementById('create_invoiceDate')?.value || '',
+        paidOn: document.getElementById('create_paidOn')?.value || '',
+        stage5PicHandler: document.getElementById('create_stage5PicHandler')?.value || '',
+        stage5Remarks: document.getElementById('create_stage5Remarks')?.value || '',
+
+        feeIdr: document.getElementById('create_feeIdr')?.value || 0,
+        iouIdr: document.getElementById('create_iouIdr')?.value || 0,
+        expensesAct: document.getElementById('create_expensesAct')?.value || 0,
+        adminCost: document.getElementById('create_adminCost')?.value || 0,
+        expenses: document.getElementById('create_expenses')?.value || 0,
+        comm: document.getElementById('create_comm')?.value || '',
+        load: document.getElementById('create_load')?.value || 0,
+        nomorJurnalLoad: document.getElementById('create_nomorJurnalLoad')?.value || '',
+        noFakturPajak: document.getElementById('create_noFakturPajak')?.value || '',
+        nomorBuktiPotongPph23: document.getElementById('create_nomorBuktiPotongPph23')?.value || '',
+        tanggalBuktiPotongPph23: document.getElementById('create_tanggalBuktiPotongPph23')?.value || '',
+        clientPayment: document.getElementById('create_clientPayment')?.value || 0,
+        remarks: document.getElementById('create_remarks')?.value || '',
+        remarksFat: document.getElementById('create_remarksFat')?.value || '',
+        status: document.getElementById('create_status')?.value || 'On Process'
+      };
+
+      Swal.fire({
+        title: 'Menyimpan Mastercase...',
+        text: 'Membuat record Mastercase & inisialisasi 5 Milestone...',
+        allowOutsideClick: false,
+        didOpen: function () { Swal.showLoading(); }
+      });
+
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (res.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Berhasil Disimpan!',
+              text: res.message,
+              timer: 1800,
+              showConfirmButton: false
+            });
+            if (res.nextJobNumber) nextGlobalJobNumber = res.nextJobNumber;
+            createForm.reset();
+            switchPage('job-detail');
+            if (typeof loadJobDataFromSheet === 'function') {
+              loadJobDataFromSheet();
+            }
+          } else {
+            Swal.fire('Gagal Menyimpan', res.error, 'error');
+          }
+        })
+        .withFailureHandler(function (err) {
+          Swal.fire('Error', err.message || 'Terjadi kesalahan sistem', 'error');
+        })
+        .createMastercase(formData);
+    });
+  }
+
+  function setupEditFormListener() {
+    var editForm = document.getElementById('mastercaseEditForm');
+    if (!editForm) return;
+
+    document.getElementById('edit_surveyFinishDate')?.addEventListener('change', function () {
+      var reportStartEl = document.getElementById('edit_reportPreparationStartDate');
+      if (reportStartEl) {
+        reportStartEl.value = this.value;
+      }
+    });
+
+    document.getElementById('edit_surveyReportSentOn')?.addEventListener('change', function () {
+      var lopStartEl = document.getElementById('edit_lopStartDate');
+      if (lopStartEl) {
+        lopStartEl.value = this.value;
+      }
+    });
+
+    editForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      var formData = {
+        rowIndex: document.getElementById('edit_rowIndex')?.value || '',
+        jobNumber: document.getElementById('edit_jobNumber')?.value || '',
+        instructionDate: document.getElementById('edit_instructionDate')?.value || '',
+        pic: document.getElementById('edit_pic')?.value || '',
+        refMsi: document.getElementById('edit_refMsi')?.value || '',
+        refClient: document.getElementById('edit_refClient')?.value || '',
+        client: document.getElementById('edit_client')?.value || '',
+        broker: document.getElementById('edit_broker')?.value || '',
+        ownerCustomer: document.getElementById('edit_ownerCustomer')?.value || '',
+        clientOfficeLocation: document.getElementById('edit_clientOfficeLocation')?.value || '',
+        clientPicPerson: document.getElementById('edit_clientPicPerson')?.value || '',
+        typeOfSurvey: document.getElementById('edit_typeOfSurvey')?.value || '',
+        lob: document.getElementById('edit_lob')?.value || '',
+        accident: document.getElementById('edit_accident')?.value || '',
+        location: document.getElementById('edit_location')?.value || '',
+        objectVesselUnit: document.getElementById('edit_objectVesselUnit')?.value || '',
+        dol: document.getElementById('edit_dol')?.value || '',
+
+        surveyStartDate: document.getElementById('edit_surveyStartDate')?.value || '',
+        surveyFinishDate: document.getElementById('edit_surveyFinishDate')?.value || '',
+        stage2PicHandler: document.getElementById('edit_stage2PicHandler')?.value || '',
+        reportPreparationStartDate: document.getElementById('edit_reportPreparationStartDate')?.value || '',
+        surveyReportSentOn: document.getElementById('edit_surveyReportSentOn')?.value || '',
+        stage3PicHandler: document.getElementById('edit_stage3PicHandler')?.value || '',
+        stage3Remarks: document.getElementById('edit_stage3Remarks')?.value || '',
+        lopStartDate: document.getElementById('edit_lopStartDate')?.value || '',
+        lopApprovedDate: document.getElementById('edit_lopApprovedDate')?.value || '',
+        stage4PicHandler: document.getElementById('edit_stage4PicHandler')?.value || '',
+        stage4Remarks: document.getElementById('edit_stage4Remarks')?.value || '',
+        invoiceDate: document.getElementById('edit_invoiceDate')?.value || '',
+        paidOn: document.getElementById('edit_paidOn')?.value || '',
+        stage5PicHandler: document.getElementById('edit_stage5PicHandler')?.value || '',
+        stage5Remarks: document.getElementById('edit_stage5Remarks')?.value || '',
+
+        feeIdr: document.getElementById('edit_feeIdr')?.value || 0,
+        iouIdr: document.getElementById('edit_iouIdr')?.value || 0,
+        expensesAct: document.getElementById('edit_expensesAct')?.value || 0,
+        adminCost: document.getElementById('edit_adminCost')?.value || 0,
+        expenses: document.getElementById('edit_expenses')?.value || 0,
+        comm: document.getElementById('edit_comm')?.value || '',
+        load: document.getElementById('edit_load')?.value || 0,
+        nomorJurnalLoad: document.getElementById('edit_nomorJurnalLoad')?.value || '',
+        noFakturPajak: document.getElementById('edit_noFakturPajak')?.value || '',
+        nomorBuktiPotongPph23: document.getElementById('edit_nomorBuktiPotongPph23')?.value || '',
+        tanggalBuktiPotongPph23: document.getElementById('edit_tanggalBuktiPotongPph23')?.value || '',
+        clientPayment: document.getElementById('edit_clientPayment')?.value || 0,
+        remarks: document.getElementById('edit_remarks')?.value || '',
+        remarksFat: document.getElementById('edit_remarksFat')?.value || '',
+        status: document.getElementById('edit_status')?.value || 'On Process'
+      };
+
+      Swal.fire({
+        title: 'Menyimpan Perubahan...',
+        text: 'Memperbarui data Mastercase & sinkronisasi Milestone...',
+        allowOutsideClick: false,
+        didOpen: function () { Swal.showLoading(); }
+      });
+
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (res.success) {
+            Swal.fire({
+              icon: 'success',
+              title: 'Berhasil Diperbarui!',
+              text: res.message,
+              timer: 1800,
+              showConfirmButton: false
+            });
+            switchPage('job-detail');
+            if (typeof loadJobDataFromSheet === 'function') {
+              loadJobDataFromSheet();
+            }
+          } else {
+            Swal.fire('Gagal Menyimpan', res.error, 'error');
+          }
+        })
+        .withFailureHandler(function (err) {
+          Swal.fire('Error', err.message || 'Terjadi kesalahan sistem', 'error');
+        })
+        .updateMastercase(formData);
+    });
+  }
+
+  // =========================================================
+  // EDIT JOB RECORD
+  // Memuat data baris terpilih ke form Edit Mastercase
+  // =========================================================
+  function editJobRecord(jobNo, rowIndex) {
+    var item = null;
+    if (rowIndex !== undefined && rowIndex !== null) {
+      item = rawJobData.find(function (r) { return r._rowIndex === Number(rowIndex); });
+    }
+    if (!item && jobNo) {
+      item = rawJobData.find(function (r) {
+        return String(r["Job Number"]) === String(jobNo) || r._rowIndex === Number(jobNo);
+      });
+    }
+
+    if (!item) {
+      Swal.fire('Error', 'Data baris Mastercase tidak ditemukan!', 'error');
+      return;
+    }
+
+    var editForm = document.getElementById('mastercaseEditForm');
+    if (editForm) editForm.reset();
+
+    var setEl = function (id, val) {
+      var el = document.getElementById(id);
+      if (el) el.value = val !== undefined && val !== null ? val : "";
+    };
+
+    var setMoneyEl = function (id, val) {
+      var el = document.getElementById(id);
+      if (el) {
+        var num = parseMoneyValue(val);
+        el.value = num > 0 ? formatNumberWithDots(num) : (val === 0 || val === '0' ? '0' : '');
+      }
+    };
+
+    var actualJobNo = item["Job Number"] || "";
+    var headerEl = document.getElementById('editJobNumberHeader');
+    if (headerEl) headerEl.innerText = actualJobNo;
+
+    setEl('edit_rowIndex', item._rowIndex);
+    setEl('edit_jobNumber', actualJobNo);
+    setEl('edit_instructionDate', item["Instruction Date"] || "");
+
+    var leadPic = item["Lead PIC"] || item["PIC"] || "";
+    setEl('edit_pic', leadPic);
+    setEl('edit_refMsi', item["Ref MSI"] || "");
+    setEl('edit_refClient', item["Ref Client"] || "");
+    setEl('edit_client', item["Client"] || "");
+    setEl('edit_broker', item["Broker / Agent"] || "");
+    setEl('edit_ownerCustomer', item["Owner / Client's Customer"] || "");
+    setEl('edit_clientOfficeLocation', item["Location Client"] || "");
+    setEl('edit_clientPicPerson', item["PIC Client"] || "");
+
+    setEl('edit_typeOfSurvey', item["Type of Survey"] || "Damage Survey");
+    setEl('edit_lob', item["LOB"] || "");
+    setEl('edit_accident', item["Accident"] || "");
+    setEl('edit_location', item["Location"] || "");
+    setEl('edit_objectVesselUnit', item["Object / Vessel / Unit"] || "");
+    setEl('edit_dol', item["DOL"] || "");
+
+    setEl('edit_surveyStartDate', item["Survey Start Date"] || item["surveyStartDate"] || item["Survey Date"] || "");
+    setEl('edit_surveyFinishDate', item["Survey Finish Date"] || item["surveyFinishDate"] || "");
+    setEl('edit_reportPreparationStartDate', item["Report Start Date"] || item["reportPreparationStartDate"] || "");
+    setEl('edit_surveyReportSentOn', item["Report Sent Date"] || item["Survey Report Sent on"] || "");
+
+    var setStagePic = function (id, val) {
+      var el = document.getElementById(id);
+      if (el) {
+        if (val && String(val).trim() !== "") {
+          el.value = val;
+          el.dataset.userModified = "true";
+        } else {
+          el.value = leadPic;
+          el.dataset.userModified = "false";
+        }
+      }
+    };
+
+    setStagePic('edit_stage2PicHandler', item["Survey PIC Handler"] || leadPic);
+    setEl('edit_stage2Remarks', item["Survey Remarks"] || item["Remarks"] || "");
+    setEl('edit_stage3Remarks', item["Report Remarks"] || item["stage3Remarks"] || "");
+    setStagePic('edit_stage3PicHandler', item["Report PIC Handler"] || item["stage3PicHandler"] || leadPic);
+    setEl('edit_lopStartDate', item["LOP Start Date"] || item["lopStartDate"] || "");
+    setEl('edit_lopApprovedDate', item["LOP Approved Date"] || item["lopApprovedDate"] || "");
+    setStagePic('edit_stage4PicHandler', item["LOP PIC Handler"] || item["stage4PicHandler"] || leadPic);
+    setEl('edit_stage4Remarks', item["LOP Remarks"] || item["stage4Remarks"] || "");
+    setStagePic('edit_stage5PicHandler', item["Invoice PIC Handler"] || item["stage5PicHandler"] || "Finance");
+    setEl('edit_stage5Remarks', item["Invoice Remarks"] || item["stage5Remarks"] || "");
+
+    setMoneyEl('edit_feeIdr', item["Fee (IDR)"] || 0);
+    setMoneyEl('edit_iouIdr', item["IOU (IDR)"] || 0);
+    setMoneyEl('edit_expensesAct', item["Expenses Act. (IDR)"] || 0);
+    setMoneyEl('edit_adminCost', item["Admin Cost (IDR)"] || 0);
+    setMoneyEl('edit_expenses', item["Expenses"] || 0);
+    setEl('edit_invoiceDate', item["Invoice Date"] || item["Invoice date"] || "");
+    setEl('edit_comm', item["Comm."] || "");
+    setMoneyEl('edit_load', item["Load"] || 0);
+    setEl('edit_nomorJurnalLoad', item["Nomor Jurnal Load"] || "");
+    setEl('edit_noFakturPajak', item["No. Faktur Pajak"] || "");
+    setEl('edit_nomorBuktiPotongPph23', item["Nomor Bukti Potong PPh 23"] || "");
+    setEl('edit_tanggalBuktiPotongPph23', item["Tanggal Bukti Potong PPh 23"] || "");
+    setEl('edit_paidOn', item["Paid Date"] || item["Paid on"] || "");
+    setMoneyEl('edit_clientPayment', item["Client Payment"] || 0);
+    setEl('edit_remarks', item["Survey Remarks"] || item["Remarks"] || "");
+    setEl('edit_remarksFat', item["Remarks FAT"] || "");
+
+    var savedStatus = item["Status"] || "On Process";
+    var editStatusEl = document.getElementById('edit_status');
+    if (editStatusEl) {
+      editStatusEl.value = savedStatus;
+      editStatusEl.dataset.userModified = "true";
+    }
+
+    calculateFormulas('edit');
+    if (typeof resetEditWizard === 'function') {
+      resetEditWizard(item);
+    }
+
+    switchPage('Mastercase_Edit');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function editMastercase(rowIndex) {
+    editJobRecord(null, rowIndex);
+  }
+
+  // =========================================================
+  // SHOW JOB DETAIL
+  // Menampilkan modal rincian lengkap informasi operasional & keuangan Mastercase
+  // =========================================================
+  function showJobDetail(jobNo, rowIndex) {
+    var item = null;
+    if (rowIndex !== undefined && rowIndex !== null) {
+      item = rawJobData.find(function (r) { return r._rowIndex === Number(rowIndex); });
+    }
+    if (!item && jobNo) {
+      item = rawJobData.find(function (r) {
+        return String(r["Job Number"]) === String(jobNo) || r._rowIndex === Number(jobNo);
+      });
+    }
+
+    if (!item) {
+      Swal.fire('Error', 'Data detail Mastercase tidak ditemukan!', 'error');
+      return;
+    }
+
+    currentDetailRowIndex = item._rowIndex;
+
+    var setText = function (id, text) {
+      var el = document.getElementById(id);
+      if (el) el.innerText = (text && String(text).trim() !== "") ? text : "-";
+    };
+
+    var setBadgeStatus = function (id, isDone, inProgress) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (isDone) {
+        el.innerText = "Completed";
+        el.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200";
+      } else if (inProgress) {
+        el.innerText = "In Progress";
+        el.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 border border-blue-200";
+      } else {
+        el.innerText = "Pending";
+        el.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600";
+      }
+    };
+
+    var actualJobNo = item["Job Number"] || "-";
+    var currentStatus = typeof getCalculatedJobStatus === 'function'
+      ? getCalculatedJobStatus(item)
+      : (item["Status"] || "On Process");
+
+    setText('detailJobNo', actualJobNo);
+
+    var driveUrl = item["Folder"] || "";
+    var driveBtnContainer = document.getElementById("detailDriveFolderBtn");
+    if (driveBtnContainer) {
+      if (driveUrl && driveUrl !== '-' && driveUrl.indexOf('http') !== -1) {
+        driveBtnContainer.innerHTML = '<a href="' + driveUrl + '" target="_blank" rel="noopener noreferrer" class="bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-2"><i data-lucide="folder-open" class="w-4 h-4"></i> Buka Drive</a>';
+      } else {
+        driveBtnContainer.innerHTML = '<button disabled class="bg-slate-200 text-slate-400 text-xs font-semibold px-4 py-2.5 rounded-xl cursor-not-allowed flex items-center gap-2"><i data-lucide="folder" class="w-4 h-4"></i> Drive Belum Ada</button>';
+      }
+    }
+
+    var statusBadgeEl = document.getElementById('detailStatusBadge');
+    if (statusBadgeEl) {
+      statusBadgeEl.innerText = currentStatus.toUpperCase();
+
+      var badgeClass = "bg-amber-100 text-amber-800 border-amber-200";
+      if (currentStatus === "Report Sent" || currentStatus === "Invoice Sent") {
+        badgeClass = "bg-blue-100 text-blue-600 border-blue-200";
+      } else if (currentStatus === "Invoice Paid") {
+        badgeClass = "bg-emerald-100 text-emerald-600 border-emerald-200";
+      } else if (currentStatus === "Awaiting Invoice") {
+        badgeClass = "bg-purple-100 text-purple-600 border-purple-200";
+      } else if (currentStatus === "In Site Survey") {
+        badgeClass = "bg-sky-100 text-sky-600 border-sky-200";
+      } else if (currentStatus === "Drafting Report") {
+        badgeClass = "bg-indigo-100 text-indigo-600 border-indigo-200";
+      } else if (currentStatus === "Cancelled") {
+        badgeClass = "bg-slate-100 text-slate-700 border-slate-200";
+      }
+
+      statusBadgeEl.className = "px-2.5 py-0.5 rounded-full text-[10px] font-bold border " + badgeClass;
+    }
+
+    setText('detailInstructionDate', item["Instruction Date"]);
+    setText('detailPic', item["Lead PIC"] || item["PIC"]);
+    setText('detailRefMsi', item["Ref MSI"]);
+    setText('detailRefClient', item["Ref Client"]);
+    setText('detailClient', item["Client"]);
+    setText('detailBroker', item["Broker / Agent"]);
+    setText('detailOwnerCustomer', item["Owner / Client's Customer"]);
+    setText('detailClientOfficeLocation', item["Location Client"]);
+    setText('detailClientPicPerson', item["PIC Client"]);
+
+    var leadPic = item["Lead PIC"] || item["PIC"] || "";
+    var s2Start = item["Survey Start Date"] || item["surveyStartDate"] || item["Survey Date"] || "";
+    var s2Finish = item["Survey Finish Date"] || item["surveyFinishDate"] || "";
+    var s3Prep = item["Report Start Date"] || item["reportPreparationStartDate"] || "";
+    var s3Sent = item["Report Sent Date"] || item["Survey Report Sent on"] || "";
+    var s4Start = item["LOP Start Date"] || item["lopStartDate"] || "";
+    var s4App = item["LOP Approved Date"] || item["lopApprovedDate"] || "";
+    var invDate = item["Invoice Date"] || item["Invoice date"] || "";
+    var paidDate = item["Paid Date"] || item["Paid on"] || "";
+
+    setText('detailStage2Pic', item["Survey PIC Handler"] || leadPic);
+    setText('detailStage3Pic', item["Report PIC Handler"] || item["stage3PicHandler"] || leadPic);
+    setText('detailStage4Pic', item["LOP PIC Handler"] || item["stage4PicHandler"] || leadPic);
+    setText('detailStage5Pic', item["Invoice PIC Handler"] || item["stage5PicHandler"] || "Finance");
+
+    setText('detailSurveyStartFinishDates', (s2Start !== '' ? s2Start : '-') + ' s/d ' + (s2Finish !== '' ? s2Finish : '-'));
+    setText('detailSurveyReportSentOn', s3Sent !== '' ? s3Sent : '-');
+    setText('detailStage3Remarks', item["Report Remarks"] || item["stage3Remarks"] || "-");
+    setText('detailLopDatesInfo', 'LOP: ' + (s4Start !== '' ? s4Start : '-') + ' | Approved: ' + (s4App !== '' ? s4App : '-'));
+    setText('detailPaidStatusInfo', 'Inv: ' + (invDate !== '' ? invDate : '-') + ' | Paid: ' + (paidDate !== '' ? paidDate : '-'));
+
+    setBadgeStatus('detailBadgeStage2', s2Finish !== '', s2Start !== '');
+    setBadgeStatus('detailBadgeStage3', s3Sent !== '', s3Prep !== '');
+    setBadgeStatus('detailBadgeStage4', s4App !== '', s4Start !== '');
+    setBadgeStatus('detailBadgeStage5', paidDate !== '', invDate !== '');
+
+    setText('detailTypeOfSurvey', item["Type of Survey"]);
+    setText('detailLob', item["LOB"]);
+    setText('detailAccident', item["Accident"]);
+    setText('detailLocation', item["Location"]);
+    setText('detailObjectVesselUnit', item["Object / Vessel / Unit"]);
+    setText('detailDol', item["DOL"]);
+    setText('detailSurveyDate', item["Survey Date"]);
+    setText('detailReportPrepStartDate', s3Prep);
+
+    var fee = parseMoneyValue(item["Fee (IDR)"]);
+    var iou = parseMoneyValue(item["IOU (IDR)"]);
+    var expAct = parseMoneyValue(item["Expenses Act. (IDR)"]);
+    var adminCost = parseMoneyValue(item["Admin Cost (IDR)"]);
+    var expenses = parseMoneyValue(item["Expenses"]);
+    var load = parseMoneyValue(item["Load"]);
+    var clientPayment = parseMoneyValue(item["Client Payment"]);
+    var loadVal = parseMoneyValue(item["Load"]);
+    var commVal = item["Comm."] || "-";
+    var jurnalVal = item["Nomor Jurnal Load"] || "-";
+
+
+    setText('detailLoadInfo', 'Load: ' + formatRupiah(loadVal) + ' | Comm: ' + commVal + ' | Jurnal: ' + jurnalVal);
+    setText('detailSurveyRemarks', item["Survey Remarks"] || item["Remarks"] || "-");
+    setText('detailReportRemarks', item["Report Remarks"] || item["stage3Remarks"] || "-");
+    setText('detailLopRemarks', item["LOP Remarks"] || item["stage4Remarks"] || "-");
+    setText('detailInvoiceRemarks', item["Invoice Remarks"] || item["stage5Remarks"] || "-");
+
+    var taxBasis = parseMoneyValue(item["TAX Basis (IDR)"]);
+    var vat11 = parseMoneyValue(item["VAT 11% (IDR)"]);
+    var invoiceAmount = parseMoneyValue(item["Invoice Amount (IDR)"]);
+    var pph23 = parseMoneyValue(item["PPH 23 (IDR)"]);
+    var netPayment = parseMoneyValue(item["Invoice Payment (net PPH23)"]);
+    var selisih = parseMoneyValue(item["Selisih"]);
+    var reimburseSettled = parseMoneyValue(item["Reimburse Settled (+/-)"]);
+
+    setText('detailFeeIdr', formatRupiah(fee));
+    setText('detailTaxBasisIdr', formatRupiah(taxBasis));
+    setText('detailIouIdr', formatRupiah(iou));
+    setText('detailExpensesAct', formatRupiah(expAct));
+    setText('detailAdminCost', formatRupiah(adminCost));
+    setText('detailLoad', formatRupiah(load));
+    setText('detailExpenses', formatRupiah(expenses));
+    setText('detailReimburseSettled', (reimburseSettled > 0 ? '+' : '') + formatRupiah(reimburseSettled));
+
+    setText('detailVat11', formatRupiah(vat11));
+    setText('detailInvoiceAmount', formatRupiah(invoiceAmount));
+    setText('detailPph23', '- ' + formatRupiah(pph23));
+    setText('detailInvoicePaymentNetPph23', formatRupiah(netPayment));
+    setText('detailClientPayment', formatRupiah(clientPayment));
+    setText('detailSelisih', formatRupiah(selisih));
+
+    setText('detailInvoiceAndPaidDate', 'Inv: ' + (invDate !== '' ? invDate : '-') + ' | Paid: ' + (paidDate !== '' ? paidDate : '-'));
+
+    var fpNo = item["No. Faktur Pajak"] || "-";
+    var bupotNo = item["Nomor Bukti Potong PPh 23"] || "-";
+    setText('detailTaxInfo', 'FP: ' + fpNo + ' | Bupot: ' + bupotNo);
+
+    setText('detailRemarks', item["Remarks"]);
+    setText('detailRemarksFat', item["Remarks FAT"]);
+
+    switchPage('Mastercase_Detail');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+  }
+
+  function viewMastercaseDetail(rowIndex) {
+    showJobDetail(null, rowIndex);
+  }
+
+  function editMastercaseFromDetail() {
+    if (currentDetailRowIndex) {
+      editJobRecord(null, currentDetailRowIndex);
+    }
+  }
+
+  // =========================================================
+  // DELETE JOB RECORD
+  // Menampilkan konfirmasi dialog dan menghapus data Mastercase dari server
+  // =========================================================
+  function deleteJobRecord(rowIndex, jobNo) {
+    var displayJob = jobNo ? '#' + jobNo : 'ini';
+    Swal.fire({
+      title: 'Hapus Mastercase ' + displayJob + '?',
+      text: "Data yang dihapus dari Google Sheets & Drive tidak dapat dikembalikan!",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#EC1F27',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Ya, Hapus Data!',
+      cancelButtonText: 'Batal'
+    }).then(function (result) {
+      if (result.isConfirmed) {
+        Swal.fire({ title: 'Menghapus...', allowOutsideClick: false, didOpen: function () { Swal.showLoading(); } });
+
+        google.script.run
+          .withSuccessHandler(function (res) {
+            if (res.success) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Terhapus!',
+                text: res.message,
+                timer: 1500,
+                showConfirmButton: false
+              });
+              if (typeof loadJobDataFromSheet === 'function') {
+                loadJobDataFromSheet();
+              }
+            } else {
+              Swal.fire('Gagal!', res.error, 'error');
+            }
+          })
+          .withFailureHandler(function (err) {
+            Swal.fire('Error', err.message || 'Terjadi kesalahan sistem', 'error');
+          })
+          .deleteMastercase(rowIndex);
+      }
+    });
+  }
+
+  // =========================================================
+  // PRINT JOB TO PDF
+  // Menyiapkan payload data case dan memicu backend untuk generate PDF serta kirim ke email user
+  // =========================================================
+  function printJobToPDF(jobNo) {
+    if (!jobNo) {
+      Swal.fire('Error', 'Nomor Job tidak valid!', 'error');
+      return;
+    }
+
+    var item = rawJobData.find(function (d) {
+      return String(d["Job Number"]) === String(jobNo);
+    });
+
+    if (!item) {
+      Swal.fire('Error', 'Data Job #' + jobNo + ' tidak ditemukan!', 'error');
+      return;
+    }
+
+    var currentUser = window.currentUserProfile || {};
+    var authUser = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+
+    var userEmail = currentUser.email || (authUser ? authUser.email : "");
+    var userName = currentUser.name || (authUser ? authUser.displayName : "User");
+
+    if (!userEmail) {
+      Swal.fire('Warning', 'Email akun Anda tidak terdeteksi. Silakan login ulang.', 'warning');
+      return;
+    }
+
+    var payload = {
+      jobNo: item["Job Number"] || "",
+      instructionDate: item["Instruction Date"] || "",
+      pic: item["Lead PIC"] || item["PIC"] || "",
+      refMsi: item["Ref MSI"] || "",
+      refClient: item["Ref Client"] || "",
+      client: item["Client"] || "",
+      broker: item["Broker / Agent"] || "",
+      owner: item["Owner / Client's Customer"] || "",
+      clientOfficeLocation: item["Location Client"] || "",
+      clientPicPerson: item["PIC Client"] || "",
+
+      surveyType: item["Type of Survey"] || "",
+      lob: item["LOB"] || "",
+      accident: item["Accident"] || "",
+      location: item["Location"] || "",
+      objectUnit: item["Object / Vessel / Unit"] || "",
+      dol: item["DOL"] || "",
+      surveyDate: item["Survey Date"] || item["Survey Start Date"] || "",
+      reportSent: item["Report Sent Date"] || item["Survey Report Sent on"] || "",
+
+      fee: parseMoneyValue(item["Fee (IDR)"]),
+      taxBasis: parseMoneyValue(item["TAX Basis (IDR)"]),
+      iou: parseMoneyValue(item["IOU (IDR)"]),
+      expAct: parseMoneyValue(item["Expenses Act. (IDR)"]),
+      adminCost: parseMoneyValue(item["Admin Cost (IDR)"]),
+      load: parseMoneyValue(item["Load"]),
+      expenses: parseMoneyValue(item["Expenses"]),
+      reimburseSettled: parseMoneyValue(item["Reimburse Settled (+/-)"]),
+
+      vat11: parseMoneyValue(item["VAT 11% (IDR)"]),
+      invoiceAmount: parseMoneyValue(item["Invoice Amount (IDR)"]),
+      pph23: parseMoneyValue(item["PPH 23 (IDR)"]),
+      netPayment: parseMoneyValue(item["Invoice Payment (net PPH23)"]),
+      clientPayment: parseMoneyValue(item["Client Payment"]),
+      selisih: parseMoneyValue(item["Selisih"]),
+      invDate: item["Invoice Date"] || item["Invoice date"] || "",
+      paidOn: item["Paid Date"] || item["Paid on"] || "",
+      noFaktur: item["No. Faktur Pajak"] || "",
+      noBupot: item["Nomor Bukti Potong PPh 23"] || "",
+      remarks: item["Survey Remarks"] || item["Remarks"] || "",
+      remarksFat: item["Remarks FAT"] || "",
+
+      userEmail: userEmail,
+      userName: userName
+    };
+
+    Swal.fire({
+      title: 'Mencetak & Mengirim PDF...',
+      text: 'Sedang membuat PDF dan mengirimkan ke Email Anda',
+      allowOutsideClick: false,
+      didOpen: function () { Swal.showLoading(); }
+    });
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (res && res.success) {
+          Swal.fire({
+            icon: 'success',
+            title: 'PDF Terkirim ke Email!',
+            html: 'Dokumen PDF Mastercase <b>#' + payload.jobNo + '</b> telah berhasil dikirimkan ke email Anda.',
+            confirmButtonColor: '#EC1F27',
+            confirmButtonText: 'OK'
+          });
+        } else {
+          Swal.fire('Error', res.error || 'Gagal mencetak PDF', 'error');
+        }
+      })
+      .withFailureHandler(function (err) {
+        Swal.fire('Error', err.message || 'Terjadi kesalahan sistem', 'error');
+      })
+      .generateMastercasePDF(payload);
+  }
+
+  function printCurrentJobToPDF() {
+    var detailJobNoEl = document.getElementById('detailJobNo');
+    var activeJobNo = detailJobNoEl ? detailJobNoEl.innerText.trim() : null;
+
+    if (!activeJobNo) {
+      Swal.fire('Error', 'Nomor Job tidak ditemukan di tampilan detail!', 'error');
+      return;
+    }
+
+    printJobToPDF(activeJobNo);
+  }
+</script>

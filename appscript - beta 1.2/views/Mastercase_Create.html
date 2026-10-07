@@ -1,0 +1,539 @@
+<div class="flex flex-col min-h-screen font-inter p-4">
+
+  <!-- Header -->
+  <div class="flex items-center text-gray-800 mb-6">
+    <div>
+      <button type="button" onclick="goBack()"
+        class="bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold p-3 rounded-xl transition shadow-sm flex items-center justify-center"
+        title="Kembali">
+        <i data-lucide="arrow-left" class="w-4 h-4 text-slate-700"></i>
+      </button>
+    </div>
+    <div class="ml-4">
+      <h2 class="text-2xl font-bold text-slate-900">Tambah Mastercase Baru</h2>
+      <p class="text-xs text-slate-500">Input data bertahap berdasarkan alur siklus pekerjaan (Stage 1 – 5)</p>
+    </div>
+  </div>
+
+  <!-- Stepper Header Progress Indicator -->
+  <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs font-semibold">
+
+      <!-- Stage 1 Pill -->
+      <button type="button" onclick="switchCreateStage(1)" id="step_pill_1"
+        class="flex items-center gap-2 p-2.5 rounded-xl bg-rose-50 border-2 border-[#EC1F27] text-[#EC1F27] shadow-sm transition-all text-left">
+        <i data-lucide="info" class="w-4 h-4 text-[#EC1F27] shrink-0"></i>
+        <div>
+          <p class="text-[10px] uppercase tracking-wider font-bold">Stage 1</p>
+          <p class="font-bold leading-tight">Instruction</p>
+        </div>
+      </button>
+
+      <!-- Stage 2 Pill -->
+      <button type="button" onclick="switchCreateStage(2)" id="step_pill_2"
+        class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 transition-all text-left opacity-60">
+        <i data-lucide="clipboard-list" class="w-4 h-4 text-slate-400 shrink-0"></i>
+        <div>
+          <p class="text-[10px] uppercase tracking-wider font-bold">Stage 2</p>
+          <p class="font-bold leading-tight">Site Survey</p>
+        </div>
+      </button>
+
+      <!-- Stage 3 Pill -->
+      <button type="button" onclick="switchCreateStage(3)" id="step_pill_3"
+        class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 transition-all text-left opacity-60">
+        <i data-lucide="file-text" class="w-4 h-4 text-slate-400 shrink-0"></i>
+        <div>
+          <p class="text-[10px] uppercase tracking-wider font-bold">Stage 3</p>
+          <p class="font-bold leading-tight">Interim Report</p>
+        </div>
+      </button>
+
+      <!-- Stage 4 Pill -->
+      <button type="button" onclick="switchCreateStage(4)" id="step_pill_4"
+        class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 transition-all text-left opacity-60">
+        <i data-lucide="coins" class="w-4 h-4 text-slate-400 shrink-0"></i>
+        <div>
+          <p class="text-[10px] uppercase tracking-wider font-bold">Stage 4</p>
+          <p class="font-bold leading-tight">Fee & Expenses</p>
+        </div>
+      </button>
+
+      <!-- Stage 5 Pill -->
+      <button type="button" onclick="switchCreateStage(5)" id="step_pill_5"
+        class="flex items-center gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-400 transition-all text-left opacity-60">
+        <i data-lucide="receipt" class="w-4 h-4 text-slate-400 shrink-0"></i>
+        <div>
+          <p class="text-[10px] uppercase tracking-wider font-bold">Stage 5</p>
+          <p class="font-bold leading-tight">Invoicing & Paid</p>
+        </div>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- Form Utama -->
+  <form id="mastercaseCreateForm" class="space-y-6">
+
+    <!-- STAGE 1: INSTRUCTION & CLIENT APPOINT -->
+    <div id="stage_card_1" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b pb-2 border-slate-100">
+        <h3 class="text-sm font-bold text-[#EC1F27] uppercase tracking-wider flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded-md bg-rose-100 text-[#EC1F27] text-xs">STAGE 1</span> Informasi Penugasan & Klien
+        </h3>
+        <span class="text-[10px] text-slate-400 font-medium">*Wajib diisi</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label for="create_jobNumber" class="block text-xs font-bold text-slate-700 mb-1">Job Number (Auto)</label>
+          <input type="text" id="create_jobNumber" name="jobNumber" value="8001" readonly
+            class="p-2.5 block w-full rounded-xl border border-slate-200 bg-slate-100 text-slate-600 text-xs font-bold cursor-not-allowed">
+        </div>
+        <div>
+          <label for="create_instructionDate" class="block text-xs font-bold text-slate-700 mb-1">Instruction Date <span
+              class="text-rose-500">*</span></label>
+          <input type="date" id="create_instructionDate" name="instructionDate"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs"
+            required>
+        </div>
+        <div>
+          <label for="create_pic" class="block text-xs font-bold text-slate-700 mb-1">Lead PIC (Adjuster) <span
+              class="text-rose-500">*</span></label>
+          <select id="create_pic" name="pic"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs bg-white cursor-pointer"
+            required>
+            <option value="">-- Pilih Lead PIC --</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="create_refMsi" class="block text-xs font-bold text-slate-700 mb-1">Ref MSI</label>
+          <input type="text" id="create_refMsi" name="refMsi" placeholder="Otomatis terisi dari Job No & LOB"
+             class="p-2.5 block w-full rounded-xl border border-slate-200 bg-slate-100 text-slate-600 text-xs cursor-not-allowed" readonly>
+        </div>
+        <div>
+          <label for="create_refClient" class="block text-xs font-bold text-slate-700 mb-1">Ref Client / No. Klaim</label>
+          <input type="text" id="create_refClient" name="refClient" placeholder="Masukkan Ref Client"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label for="create_client" class="block text-xs font-bold text-slate-700 mb-1">Client (Insurer) <span
+              class="text-rose-500">*</span></label>
+          <input type="text" id="create_client" name="client" placeholder="Nama Perusahaan Asuransi" required
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+        <div>
+          <label for="create_broker" class="block text-xs font-bold text-slate-700 mb-1">Broker / Agent</label>
+          <select id="create_broker" name="broker"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs bg-white cursor-pointer">
+            <option value="">-- Pilih Agent / Broker --</option>
+          </select>
+        </div>
+        <div>
+          <label for="create_ownerCustomer" class="block text-xs font-bold text-slate-700 mb-1">Owner / Insured Name</label>
+          <input type="text" id="create_ownerCustomer" name="ownerCustomer" placeholder="Nama Tertanggung / Insured"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+        <div>
+          <label for="create_clientOfficeLocation" class="block text-xs font-bold text-slate-700 mb-1">Lokasi Kantor Client</label>
+          <input type="text" id="create_clientOfficeLocation" name="clientOfficeLocation"
+            placeholder="Contoh: Jakarta Pusat / Surabaya"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+        <div>
+          <label for="create_clientPicPerson" class="block text-xs font-bold text-slate-700 mb-1">PIC Client</label>
+          <input type="text" id="create_clientPicPerson" name="clientPicPerson" placeholder="Nama & No. HP PIC Client"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+      </div>
+
+      <div>
+          <label for="create_status" class="block text-xs font-bold text-slate-700 mb-1">Status Job awal <span
+              class="text-rose-500">*</span></label>
+          <select id="create_status" name="status" required
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs bg-white cursor-pointer font-semibold text-slate-700">
+              <option value="On Process" selected>On Process</option>
+              <option value="In Site Survey">In Site Survey</option>
+              <option value="Drafting Report">Drafting Report</option>
+              <option value="Report Sent">Report Sent</option>
+              <option value="Awaiting Invoice">Awaiting Invoice</option>
+              <option value="Invoice Sent">Invoice Sent</option>
+              <option value="Invoice Paid">Invoice Paid (Lunas)</option>
+              <option value="Cancelled">Case Cancelled</option>
+          </select>
+      </div>
+    </div>
+
+    <!-- STAGE 2: SITE SURVEY & RISK DETAILS -->
+    <div id="stage_card_2" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b pb-2 border-slate-100">
+        <h3 class="text-sm font-bold text-[#EC1F27] uppercase tracking-wider flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded-md bg-rose-100 text-[#EC1F27] text-xs">STAGE 2</span> Detail Survei & Objek
+        </h3>
+        <span class="text-[10px] text-slate-400 font-medium">Opsional</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label for="create_typeOfSurvey" class="block text-xs font-bold text-slate-700 mb-1">Type of Survey</label>
+          <select id="create_typeOfSurvey" name="typeOfSurvey"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs bg-white cursor-pointer">
+            <option value="">-- Pilih Jenis Survei --</option>
+            <option value="Damage Survey">Damage Survey</option>
+            <option value="Pre-Shipment/ Lashing Survey">Pre-Shipment/ Lashing Survey</option>
+            <option value="Pre-Shipment">Pre-Shipment</option>
+            <option value="Condition Survey">Condition Survey</option>
+            <option value="Valuation Survey">Valuation Survey</option>
+            <option value="Risk Management Survey">Risk Management Survey</option>
+            <option value="Safety Survey">Safety Survey</option>
+            <option value="Calibration">Calibration</option>
+          </select>
+        </div>
+        <div>
+          <label for="create_lob" class="block text-xs font-bold text-slate-700 mb-1">Line of Business (LOB)</label>
+          <select id="create_lob" name="lob"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs bg-white cursor-pointer">
+            <option value="">-- Pilih LOB --</option>
+            <option value="Heavy Equipment / MV">Heavy Equipment / MV</option>
+            <option value="Marine Cargo">Marine Cargo</option>
+            <option value="Marine Hull">Marine Hull</option>
+            <option value="Marine P&I">Marine P&I</option>
+            <option value="Marine & Carrier Liability">Marine & Carrier Liability (FFL / Stevedoring)</option>
+            <option value="Property (PAR / IAR)">Property (PAR / IAR)</option>
+            <option value="Property Engineering">Property Engineering (CAR / EAR / CECR)</option>
+            <option value="Power Plant / Energy">Power Plant / Energy</option>
+            <option value="Business Interruption (BI / ALOP / DSU)">Business Interruption (BI / ALOP / DSU)</option>
+            <option value="Machinery Breakdown (MB)">Machinery Breakdown (MB)</option>
+            <option value="General & Product Liability (CGL)">General & Product Liability (CGL)</option>
+            <option value="Financial & Pecuniary Losses">Financial & Pecuniary Losses / Agriculture</option>
+            <option value="Fidelity Guarantee & Money Insurance">Fidelity Guarantee & Money Insurance (CIT / CIS)</option>
+            <option value="Catastrophic Losses">Catastrophic Losses</option>
+            <option value="Pre-Shipment">Pre-Shipment</option>
+          </select>
+        </div>
+        <div>
+          <label for="create_accident" class="block text-xs font-bold text-slate-700 mb-1">Accident Cause</label>
+          <input type="text" id="create_accident" name="accident" placeholder="Contoh: Collision, Fire, Flood"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="create_location" class="block text-xs font-bold text-slate-700 mb-1">Location</label>
+          <input type="text" id="create_location" name="location" placeholder="Lokasi Survei"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+        <div>
+          <label for="create_objectVesselUnit" class="block text-xs font-bold text-slate-700 mb-1">Object / Vessel / Unit</label>
+          <input type="text" id="create_objectVesselUnit" name="objectVesselUnit" placeholder="Deskripsi Objek / Serial No."
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2 border-t border-slate-100">
+        <div>
+          <label for="create_dol" class="block text-xs font-bold text-slate-700 mb-1">Date of Loss (DOL)</label>
+          <input type="date" id="create_dol" name="dol"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+        <div>
+          <label for="create_surveyStartDate" class="block text-xs font-bold text-slate-700 mb-1">Survey Start Date</label>
+          <input type="date" id="create_surveyStartDate" name="surveyStartDate"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+        <div>
+          <label for="create_surveyFinishDate" class="block text-xs font-bold text-slate-700 mb-1">Survey Finish Date</label>
+          <input type="date" id="create_surveyFinishDate" name="surveyFinishDate"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+        <div>
+          <label for="create_stage2PicHandler" class="block text-xs font-bold text-slate-700 mb-1">PIC Handler Stage 2</label>
+          <select id="create_stage2PicHandler" name="stage2PicHandler"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs bg-white cursor-pointer">
+            <option value="">-- Default Lead PIC --</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100">
+        <label for="create_remarks" class="block text-xs font-bold text-slate-700 mb-1">Surveyor Remarks (Catatan Survei Lapangan)</label>
+        <textarea id="create_remarks" name="remarks" rows="2" placeholder="Catatan temuan atau ringkasan operasional survei..."
+          class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs"></textarea>
+      </div>
+    </div>
+
+    <!-- STAGE 3: INTERIM & REPORTING -->
+    <div id="stage_card_3" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b pb-2 border-slate-100">
+        <h3 class="text-sm font-bold text-[#EC1F27] uppercase tracking-wider flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs">STAGE 3</span> Laporan & Progress Lapangan
+        </h3>
+        <span class="text-[10px] text-slate-400 font-medium">Opsional</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label for="create_reportPreparationStartDate" class="block text-xs font-bold text-slate-700 mb-1">Tanggal Mulai Penyusunan Laporan</label>
+          <input type="date" id="create_reportPreparationStartDate" name="reportPreparationStartDate" readonly
+            class="p-2.5 block w-full rounded-xl border border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none text-xs">
+          <p class="text-[10px] text-slate-400 mt-1">Otomatis terisi dari Tanggal Selesai Survey.</p>
+        </div>
+        <div>
+          <label for="create_surveyReportSentOn" class="block text-xs font-bold text-slate-700 mb-1">Survey Report Sent On</label>
+          <input type="date" id="create_surveyReportSentOn" name="surveyReportSentOn"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+        <div>
+          <label for="create_stage3PicHandler" class="block text-xs font-bold text-slate-700 mb-1">PIC Handler Stage 3</label>
+          <select id="create_stage3PicHandler" name="stage3PicHandler"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs bg-white cursor-pointer">
+            <option value="">-- Default Lead PIC --</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100">
+        <label for="create_stage3Remarks" class="block text-xs font-bold text-slate-700 mb-1">Stage 3 Progress Remarks / Evidence</label>
+        <textarea id="create_stage3Remarks" name="stage3Remarks" rows="2" placeholder="Catatan progress penyusunan laporan..."
+          class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs"></textarea>
+      </div>
+    </div>
+
+    <!-- STAGE 4: FEE & EXPENSES -->
+    <div id="stage_card_4" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b pb-2 border-slate-100">
+        <h3 class="text-sm font-bold text-[#EC1F27] uppercase tracking-wider flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs">STAGE 4</span> Biaya, LOP & Expenses Operasional
+        </h3>
+        <span class="text-[10px] text-slate-400 font-medium">Opsional</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pb-2 border-b border-slate-100">
+        <div>
+          <label for="create_lopStartDate" class="block text-xs font-bold text-slate-700 mb-1">Tanggal Mulai Pengajuan LOP</label>
+          <input type="date" id="create_lopStartDate" name="lopStartDate" readonly
+            class="p-2.5 block w-full rounded-xl border border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed focus:outline-none text-xs">
+          <p class="text-[10px] text-slate-400 mt-1">Otomatis terisi dari Tanggal Laporan Dikirim (Report Sent).</p>
+        </div>
+        <div>
+          <label for="create_lopApprovedDate" class="block text-xs font-bold text-slate-700 mb-1">Tanggal LOP Disetujui / Invoice Issued</label>
+          <input type="date" id="create_lopApprovedDate" name="lopApprovedDate"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+        <div>
+          <label for="create_stage4PicHandler" class="block text-xs font-bold text-slate-700 mb-1">PIC Handler Stage 4</label>
+          <select id="create_stage4PicHandler" name="stage4PicHandler"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs bg-white cursor-pointer">
+            <option value="">-- Default Lead PIC --</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label for="create_feeIdr" class="block text-xs font-bold text-slate-700 mb-1">Fee (IDR)</label>
+          <input type="text" inputmode="numeric" id="create_feeIdr" name="feeIdr" placeholder="0"
+            oninput="formatCurrencyInput(this, 'create')"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs font-mono">
+        </div>
+        <div>
+          <label for="create_taxBasisIdr" class="block text-xs font-bold text-slate-700 mb-1">TAX Basis (IDR) <span class="text-slate-400 font-normal">[Formula]</span></label>
+          <input type="text" id="create_taxBasisIdr" name="taxBasisIdr" placeholder="0" readonly
+            class="p-2.5 block w-full rounded-xl border border-slate-200 bg-slate-100 text-slate-600 font-semibold font-mono text-xs cursor-not-allowed">
+        </div>
+        <div>
+          <label for="create_iouIdr" class="block text-xs font-bold text-slate-700 mb-1">Kasbon / IOU (IDR)</label>
+          <input type="text" inputmode="numeric" id="create_iouIdr" name="iouIdr" placeholder="0"
+            oninput="formatCurrencyInput(this, 'create')"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs font-mono">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label for="create_expensesAct" class="block text-xs font-bold text-slate-700 mb-1">Expenses Act. (IDR)</label>
+          <input type="text" inputmode="numeric" id="create_expensesAct" name="expensesAct" placeholder="0"
+            oninput="formatCurrencyInput(this, 'create')"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs font-mono">
+        </div>
+        <div>
+          <label for="create_adminCost" class="block text-xs font-bold text-slate-700 mb-1">Admin Cost (IDR)</label>
+          <input type="text" inputmode="numeric" id="create_adminCost" name="adminCost" placeholder="0"
+            oninput="formatCurrencyInput(this, 'create')"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs font-mono">
+        </div>
+        <div>
+          <label for="create_expenses" class="block text-xs font-bold text-slate-700 mb-1">Expenses Total (IDR)</label>
+          <input type="text" inputmode="numeric" id="create_expenses" name="expenses" placeholder="0"
+            oninput="formatCurrencyInput(this, 'create')"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs font-semibold font-mono text-slate-800">
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100">
+        <label for="create_stage4Remarks" class="block text-xs font-bold text-slate-700 mb-1">Stage 4 Negosiasi / LOP Remarks</label>
+        <textarea id="create_stage4Remarks" name="stage4Remarks" rows="2" placeholder="Catatan negosiasi / persetujuan LOP..."
+          class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs"></textarea>
+      </div>
+    </div>
+
+    <!-- STAGE 5: INVOICING, TAX & SETTLEMENT -->
+    <div id="stage_card_5" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b pb-2 border-slate-100">
+        <h3 class="text-sm font-bold text-[#EC1F27] uppercase tracking-wider flex items-center gap-2">
+          <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs">STAGE 5</span> Invoicing & Pajak
+        </h3>
+        <span class="text-[10px] text-slate-400 font-medium">Opsional</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label for="create_vat11" class="block text-xs font-bold text-slate-700 mb-1">VAT 11% (IDR) <span
+              class="text-slate-400 font-normal">[Formula]</span></label>
+          <input type="text" id="create_vat11" name="vat11" placeholder="0" readonly
+            class="p-2.5 block w-full rounded-xl border border-slate-200 bg-slate-100 text-slate-600 font-semibold font-mono text-xs cursor-not-allowed">
+        </div>
+        <div>
+          <label for="create_invoiceAmount" class="block text-xs font-bold text-slate-700 mb-1">Invoice Gross <span
+              class="text-slate-400 font-normal">[Formula]</span></label>
+          <input type="text" id="create_invoiceAmount" name="invoiceAmount" placeholder="0" readonly
+            class="p-2.5 block w-full rounded-xl border border-slate-200 bg-slate-100 text-slate-800 font-bold font-mono text-xs cursor-not-allowed">
+        </div>
+        <div>
+          <label for="create_invoiceDate" class="block text-xs font-bold text-slate-700 mb-1">Invoice Date</label>
+          <input type="date" id="create_invoiceDate" name="invoiceDate"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label for="create_comm" class="block text-xs font-bold text-slate-700 mb-1">Comm.</label>
+          <input type="text" id="create_comm" name="comm" placeholder="3.37"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+        <div>
+          <label for="create_load" class="block text-xs font-bold text-slate-700 mb-1">Load (IDR)</label>
+          <input type="text" inputmode="numeric" id="create_load" name="load" placeholder="0"
+            oninput="formatCurrencyInput(this, 'create')"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs font-mono">
+        </div>
+        <div>
+          <label for="create_nomorJurnalLoad" class="block text-xs font-bold text-slate-700 mb-1">No. Jurnal Load</label>
+          <input type="text" id="create_nomorJurnalLoad" name="nomorJurnalLoad" placeholder="GJ000040"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+        <div>
+          <label for="create_noFakturPajak" class="block text-xs font-bold text-slate-700 mb-1">No. Faktur Pajak</label>
+          <input type="text" id="create_noFakturPajak" name="noFakturPajak" placeholder="010.010-24..."
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label for="create_pph23" class="block text-xs font-bold text-slate-700 mb-1">PPh 23 (IDR) <span
+              class="text-slate-400 font-normal">[Formula]</span></label>
+          <input type="text" id="create_pph23" name="pph23" placeholder="0" readonly
+            class="p-2.5 block w-full rounded-xl border border-slate-200 bg-slate-100 text-rose-600 font-semibold font-mono text-xs cursor-not-allowed">
+        </div>
+        <div>
+          <label for="create_nomorBuktiPotongPph23" class="block text-xs font-bold text-slate-700 mb-1">No. Bupot PPh 23</label>
+          <input type="text" id="create_nomorBuktiPotongPph23" name="nomorBuktiPotongPph23" placeholder="No. Bupot"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+        <div>
+          <label for="create_tanggalBuktiPotongPph23" class="block text-xs font-bold text-slate-700 mb-1">Tgl. Bupot PPh 23</label>
+          <input type="date" id="create_tanggalBuktiPotongPph23" name="tanggalBuktiPotongPph23"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-100">
+        <div>
+          <label for="create_invoicePaymentNetPph23" class="block text-xs font-bold text-slate-700 mb-1">Expected Payment Net <span class="text-slate-400 font-normal">[Formula]</span></label>
+          <input type="text" id="create_invoicePaymentNetPph23" name="invoicePaymentNetPph23" placeholder="0" readonly
+            class="p-2.5 block w-full rounded-xl border border-slate-200 bg-slate-100 text-emerald-700 font-bold font-mono text-xs cursor-not-allowed">
+        </div>
+        <div>
+          <label for="create_paidOn" class="block text-xs font-bold text-slate-700 mb-1">Paid On (Tanggal Lunas)</label>
+          <input type="date" id="create_paidOn" name="paidOn"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs">
+        </div>
+        <div>
+          <label for="create_clientPayment" class="block text-xs font-bold text-slate-700 mb-1">Client Payment (IDR)</label>
+          <input type="text" inputmode="numeric" id="create_clientPayment" name="clientPayment" placeholder="0"
+            oninput="formatCurrencyInput(this, 'create')"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs font-mono">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="create_selisih" class="block text-xs font-bold text-slate-700 mb-1">Selisih (IDR) <span
+              class="text-slate-400 font-normal">[Formula]</span></label>
+          <input type="text" id="create_selisih" name="selisih" placeholder="0" readonly
+            class="p-2.5 block w-full rounded-xl border border-slate-200 bg-slate-100 text-slate-600 font-semibold font-mono text-xs cursor-not-allowed">
+        </div>
+        <div>
+          <label for="create_reimburseSettled" class="block text-xs font-bold text-slate-700 mb-1">Reimburse Settled (+/-) <span class="text-slate-400 font-normal">[Formula]</span></label>
+          <input type="text" id="create_reimburseSettled" name="reimburseSettled" placeholder="0" readonly
+            class="p-2.5 block w-full rounded-xl border border-slate-200 bg-slate-100 text-slate-600 font-semibold font-mono text-xs cursor-not-allowed">
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label for="create_stage5PicHandler" class="block text-xs font-bold text-slate-700 mb-1">PIC Handler Stage 5</label>
+          <select id="create_stage5PicHandler" name="stage5PicHandler"
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs bg-white cursor-pointer">
+            <option value="">-- Default Finance / Lead PIC --</option>
+          </select>
+        </div>
+        <div>
+          <label for="create_remarksFat" class="block text-xs font-bold text-slate-700 mb-1">Finance Remarks (FAT)</label>
+          <textarea id="create_remarksFat" name="remarksFat" rows="1" placeholder="Catatan tim Finance..."
+            class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs"></textarea>
+        </div>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100">
+        <label for="create_stage5Remarks" class="block text-xs font-bold text-slate-700 mb-1">Stage 5 Settlement / Invoicing Remarks</label>
+        <textarea id="create_stage5Remarks" name="stage5Remarks" rows="1"
+          placeholder="Catatan bukti pelunasan & invoice..."
+          class="p-2.5 block w-full rounded-xl border border-slate-200 focus:outline-none focus:border-[#EC1F27] focus:ring-1 focus:ring-[#EC1F27] text-xs"></textarea>
+      </div>
+    </div>
+
+    <!-- BUTTONS MULTI-STEP NAVIGATION -->
+    <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+      <button type="button" id="btn_prev_stage" onclick="navigateStage(-1)"
+        class="hidden px-5 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition flex items-center gap-2">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Kembali
+      </button>
+
+      <div class="flex items-center gap-3 ml-auto">
+        <button type="submit" id="btn_submit_job"
+          class="bg-slate-800 text-white px-5 py-2.5 rounded-xl hover:bg-slate-900 text-xs font-semibold transition shadow-md flex items-center gap-2">
+          <i data-lucide="save" class="w-4 h-4"></i> Simpan Mastercase
+        </button>
+
+        <button type="button" id="btn_next_stage" onclick="navigateStage(1)"
+          class="bg-gradient-to-r from-[#EC1F27] to-[#F16531] text-white px-6 py-2.5 rounded-xl hover:opacity-95 text-xs font-semibold transition shadow-md shadow-red-900/10 flex items-center gap-2">
+          Lanjut ke Stage 2 <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+  </form>
+</div>

@@ -1,0 +1,153 @@
+<!-- KPI METRICS SUMMARY CARDS -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+  <!-- Card 1: Total Mastercase -->
+  <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Mastercase</p>
+      <h3 id="kpiTotalMastercase" class="text-xl font-bold text-slate-800 mt-1">0</h3>
+      <p id="kpiMastercaseSubtext" class="text-xs text-emerald-600 font-medium mt-1">
+        <i class="fa-solid fa-arrow-trend-up mr-1"></i>+0 bulan ini
+      </p>
+    </div>
+    <div class="w-12 h-12 rounded-xl bg-orange-50 text-[#F16531] flex items-center justify-center text-xl shrink-0">
+      <i class="fa-regular fa-clipboard"></i>
+    </div>
+  </div>
+
+  <!-- Card 2: Klaim Pending -->
+  <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Klaim Pending</p>
+      <h3 id="kpiPendingClaims" class="text-xl font-bold text-slate-800 mt-1">0</h3>
+      <p class="text-xs text-rose-500 font-medium mt-1">Membutuhkan tindak lanjut</p>
+    </div>
+    <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center text-xl shrink-0">
+      <i class="fa-solid fa-hourglass-half"></i>
+    </div>
+  </div>
+
+  <!-- Card 3: Total Adjuster Fee -->
+  <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Fee</p>
+      <h3 id="kpiTotalSurveyFee" class="text-xl font-bold text-slate-800 mt-1">Rp 0</h3>
+      <p class="text-xs text-slate-400 font-medium mt-1">Akumulasi seluruh fee</p>
+    </div>
+    <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shrink-0">
+      <i class="fa-solid fa-coins"></i>
+    </div>
+  </div>
+
+  <!-- Card 4: Fee Settled (Keuangan) -->
+  <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+    <div>
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Paid & Outstanding</p>
+      <h3 id="kpiFeeSettled" class="text-xl font-bold text-slate-800 mt-1">Rp 0</h3>
+      <p id="kpiFeeUnpaid" class="text-xs text-rose-500 font-semibold mt-1">Unpaid: Rp 0</p>
+    </div>
+    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shrink-0">
+      <i class="fa-solid fa-wallet"></i>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION GRAFIK VISUAL -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+  <!-- Chart 1: Line Chart Tren Job Bulanan Per LOB -->
+  <div class="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+      <div>
+        <h3 class="text-sm font-bold text-slate-800">Tren Instruksi Klaim</h3>
+        <p id="trendChartSubtitle" class="text-xs text-slate-400">Jumlah Job Detail masuk sepanjang tahun</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="dashboardYearSelect" class="text-xs text-slate-500 font-medium">Tahun:</label>
+        <select id="dashboardYearSelect" onchange="onDashboardYearChange(this.value)"
+          class="text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-3 py-1.5 rounded-lg outline-none cursor-pointer transition">
+        </select>
+      </div>
+    </div>
+    <div class="relative h-72 w-full">
+      <canvas id="jobTrendChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 2: Doughnut Chart Distribusi LOB -->
+  <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+    <div class="mb-4">
+      <h3 class="text-sm font-bold text-slate-800">Distribusi Sektor (LOB)</h3>
+      <p class="text-xs text-slate-400">Persentase jenis objek klaim</p>
+    </div>
+    <div class="relative h-72 w-full flex items-center justify-center">
+      <canvas id="lobDistributionChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN RECENT JOBS TABLE CONTAINER -->
+<div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+  <!-- Table Title & Filter Header -->
+  <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h2 class="text-base font-bold text-slate-800">Mastercase Terbaru</h2>
+      <p class="text-xs text-slate-400 mt-0.5">Daftar inspeksi klaim Loss Adjusting aktif dan terkini</p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <!-- Search Input -->
+      <div class="relative">
+        <input type="text" id="dashboardSearchInput" placeholder="Cari Job No / Insured..."
+          class="pl-8 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-[#F16531] w-44 sm:w-52 transition">
+        <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+      </div>
+
+      <!-- Date Range Filter -->
+      <div class="relative flex items-center">
+        <input type="text" id="dashboardDateRangePicker" placeholder="Filter Tanggal..."
+          class="pl-8 pr-7 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-[#F16531] w-40 sm:w-44 transition cursor-pointer">
+        <i class="fa-regular fa-calendar absolute left-2.5 text-slate-400 text-xs pointer-events-none"></i>
+        <button id="clearDashboardDateBtn" onclick="clearDashboardDateRange()"
+          class="hidden absolute right-2 text-slate-400 hover:text-red-500 text-xs" title="Reset Tanggal">
+          <i class="fa-solid fa-circle-xmark"></i>
+        </button>
+      </div>
+
+      <!-- New Job Button -->
+      <button onclick="switchPage('Mastercase_Create')"
+        class="bg-[#EC1F27] hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded-lg transition shadow-sm shadow-red-900/10 flex items-center gap-1.5">
+        <i class="fa-solid fa-plus text-xs"></i> New Job
+      </button>
+    </div>
+  </div>
+
+  <!-- Data Table Container (Scrollable Horizontal) -->
+  <div class="overflow-x-auto w-full">
+    <table class="w-full text-left border-collapse min-w-[1000px]">
+      <thead>
+        <tr class="bg-[#31363F] border-b border-slate-100 text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+          <th class="py-3 px-4 w-32">Job Number</th>
+          <th class="py-3 px-4">Client & Insured</th>
+          <th class="py-3 px-4 w-28">PIC</th>
+          <th class="py-3 px-4">MSI / Client Ref</th>
+          <th class="py-3 px-4">LOB & Survey Type</th>
+          <th class="py-3 px-4 text-center">Job Lifecycle Pipeline</th>
+          <th class="py-3 px-4 text-center w-28">Status</th>
+          <th class="py-3 px-4 text-center w-20">Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="dashboardRecentJobsTableBody" class="divide-y divide-slate-100 text-xs text-slate-700">
+        <tr>
+          <td colspan="8" class="py-8 text-center text-slate-400 font-medium">Memuat data job...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer Summary Tabel -->
+  <div class="p-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+    <span id="dashboardTableCount">Menampilkan Job Terbaru</span>
+    <button onclick="switchPage('job-detail')"
+      class="font-semibold text-[#EC1F27] hover:underline flex items-center gap-1">
+      Lihat Semua Job di Mastercase <i class="fa-solid fa-arrow-right text-[10px]"></i>
+    </button>
+  </div>
+</div>
