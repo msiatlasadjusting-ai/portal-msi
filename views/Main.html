@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+  <!-- SECTION 1: HALAMAN LOGIN & REGISTER -->
+  <div id="login-section">
+    <?!= include('views/Auth'); ?>
+  </div>
+
+  <div id="setup-profile-section" class="hidden min-h-screen flex items-center justify-center bg-slate-100 p-4">
+    <?!= include('views/Profile_SetUp'); ?>
+  </div>
+
+  <!-- SECTION 3: APP MAIN SECTION -->
+  <div id="app-section" class="hidden flex min-h-screen">
+    
+    <!-- SIDEBAR NAVIGATION -->
+    <aside id="sidebar" class="relative w-64 bg-[#2D323E] text-slate-300 h-screen sticky top-0 flex flex-col justify-between p-4 transition-all duration-300 select-none shrink-0 z-40">
+      <div>
+        <div class="flex items-center justify-between py-6 mt-6 mb-10 h-12 px-2">
+          <img id="logo-full" src="https://lh3.googleusercontent.com/d/1Y97qWfMinIbl8FLEiZpKrEaxxa6JdjVd" alt="MSI Logo" class="h-16 object-contain brightness-0 invert drop-shadow-sm">
+
+          <div id="logo-icon" class="hidden text-white font-bold text-xl w-full text-center">
+            <img src="https://lh3.googleusercontent.com/d/17mLAJ-0JekZ3z1e-jGP3QHXs9Qe919Gi" alt="MSI logo" class="h-10 w-10 object-contain mx-auto brightness-0 invert drop-shadow-sm">
+          </div>
+
+          <button id="toggle-btn" class="absolute -right-3.5 top-6 w-7 h-7 rounded-full bg-[#383E4C] text-slate-400 hover:text-white flex items-center justify-center transition text-xs shrink-0 shadow-md border border-slate-600/50 z-20">
+            <i id="toggle-icon" class="fa-solid fa-chevron-left inline-block transition-transform duration-300"></i>
+          </button>
+        </div>
+
+        <nav>
+          <ul class="space-y-3 text-sm font-medium">
+            <li>
+              <button onclick="switchPage('overview')" id="nav-overview" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-[#EC1F27] text-white font-semibold shadow-md shadow-red-900/20 transition group relative" title="Overview">
+                <i class="fa-solid fa-house text-base w-5 text-center shrink-0"></i>
+                <span class="sidebar-text whitespace-nowrap transition-opacity duration-200">Overview</span>
+              </button>
+            </li>
+
+            <li>
+              <button onclick="switchPage('job-detail')" id="nav-job-detail" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl hover:bg-[#383E4C] hover:text-white text-slate-400 transition group relative" title="Job Detail">
+                <div class="flex items-center gap-3">
+                  <i class="fa-regular fa-clipboard text-base w-5 text-center shrink-0"></i>
+                  <span class="sidebar-text whitespace-nowrap transition-opacity duration-200">Job Detail</span>
+                </div>
+              </button>
+            </li>
+
+            <li>
+              <button onclick="switchPage('finance')" id="nav-finance" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-[#383E4C] hover:text-white text-slate-400 transition group relative" title="Finance & Billing">
+                <i class="fa-solid fa-circle-dollar-to-slot text-base w-5 text-center shrink-0"></i>
+                <span class="sidebar-text whitespace-nowrap transition-opacity duration-200">Finance & Billing</span>
+              </button>
+            </li>
+
+            <li>
+              <button onclick="switchPage('setting')" id="nav-setting" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-[#383E4C] hover:text-white text-slate-400 transition group relative" title="Setting">
+                <i class="fa-solid fa-gear text-base w-5 text-center shrink-0"></i>
+                <span class="sidebar-text whitespace-nowrap transition-opacity duration-200">Setting</span>
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <div class="pt-6">
+        <button onclick="logoutApp()" id="logout-button" class="flex items-center justify-center gap-2 w-full py-2.5 bg-[#383E4C] hover:bg-red-500/20 hover:text-red-400 text-xs font-semibold text-slate-300 rounded-xl transition border border-slate-700/50" title="Logout">
+          <i class="fa-solid fa-arrow-right-from-bracket text-sm shrink-0"></i>
+          <span class="sidebar-text whitespace-nowrap transition-opacity duration-200">Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- HEADER -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-y-auto">
+      <header class="mt-4 border-b border-slate-200 mx-10 py-4 sticky top-0 flex items-center justify-between z-50 bg-slate-100/90 backdrop-blur-md">        
+        <!-- Judul & Subtitle yang akan berubah otomatis -->
+        <div>
+          <h1 id="globalPageTitle" class="text-2xl font-bold text-slate-800 tracking-tight">Overview Dashboard</h1>
+          <p id="globalPageSubtitle" class="text-xs text-slate-500 mt-0.5">Selamat Datang di Sistem Mahardhika Surveyor Indonesia (MSI)</p>
+        </div>
+
+        <!-- Controls: Profil User & Notifikasi -->
+        <div class="flex items-center gap-3">
+          <!-- KODE BARU HEADER NOTIFIKASI (Gantikan kode lama kamu) -->
+          <div class="relative font-inter" id="notificationDropdownContainer">
+
+            <button type="button" onclick="toggleNotificationDropdown()"
+              class="relative w-10 h-10 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200/70 text-slate-500 hover:text-slate-700 flex items-center justify-center transition focus:outline-none" 
+              title="Notifikasi">
+              <i class="fa-regular fa-bell text-base"></i>
+
+              <span id="notifBadgeDot" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#EC1F27] text-white text-[10px] font-bold rounded-full px-1 flex items-center justify-center ring-2 ring-white">
+                0
+              </span>
+            </button>
+
+
+            <div id="notifDropdownMenu" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-100 z-[9999] overflow-hidden transform transition-all duration-200">
+              
+ 
+              <div class="p-4 bg-white border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <h3 class="font-bold text-slate-800 text-sm">Notifikasi</h3>
+                  <span id="notifUnreadBadge" class="bg-red-50 text-[#EC1F27] text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-red-100">
+                    0 Baru
+                  </span>
+                </div>
+                <button type="button" onclick="markAllNotificationsAsRead()" class="text-[11px] font-semibold text-slate-500 hover:text-[#EC1F27] transition">
+                  Tandai dibaca
+                </button>
+              </div>
+
+              <div id="notifListContainer" class="max-h-80 overflow-y-auto divide-y divide-slate-50 scrollbar-thin">
+                <!-- State Loading Default -->
+                <div class="p-6 text-center text-slate-400 text-xs font-medium">
+                  <i class="fa-solid fa-spinner animate-spin text-base mb-2 text-slate-300"></i>
+                  <p>Memuat notifikasi...</p>
+                </div>
+              </div>
+
+              <div class="p-3 bg-slate-50/80 border-t border-slate-100 text-center">
+                <a href="https://mail.google.com/" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-slate-600 hover:text-[#EC1F27] transition inline-flex items-center gap-1.5">
+                  <i class="fa-regular fa-envelope"></i> Buka Gmail Utama
+                </a>
+              </div>
+
+            </div>
+          </div>
+
+          <div class="h-8 w-[1px] bg-slate-200 hidden sm:block"></div>
+
+          <div class="flex items-center gap-3 pl-1">
+            <div class="relative">
+              <img 
+                id="globalHeaderUserProfileImage" 
+                src="https://cdn-icons-png.flaticon.com/512/1077/1077114.png" 
+                class="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 object-cover" 
+                alt="User Avatar"
+              >
+              <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" title="Online"></span>
+            </div>
+            <div class="flex flex-col">
+              <div class="flex items-center gap-1.5">
+                <span id="globalHeaderUserProfileName" class="text-sm font-bold text-slate-800 leading-none">User</span>
+              </div>
+              <span id="globalHeaderUserProfileRole" class="text-xs text-slate-400 mt-1 font-medium">Adjuster</span>
+            </div>
+          </div>
+        </div>
+
+      </header>
+
+    <!-- MAIN CONTENT PAGES -->
+    <main class="flex-1 p-6 overflow-y-auto">
+      <div id="page-overview" class="page-content">
+        <?!= include('views/Dashboard'); ?>
+      </div>
+
+      <div id="page-job-detail" class="page-content hidden">
+        <?!= include('views/JobDetail'); ?>
+      </div>
+
+      <div id="page-finance" class="page-content hidden">
+        <?!= include('views/Finance'); ?>
+      </div>
+
+      <div id="page-Mastercase_Create" class="page-content hidden">
+        <?!= include('views/Mastercase_Create'); ?>
+      </div>
+
+      <div id="page-Mastercase_Edit" class="page-content hidden">
+        <?!= include('views/Mastercase_Edit'); ?>
+      </div>
+
+      <div id="page-Mastercase_Detail" class="page-content hidden">
+        <?!= include('views/Mastercase_Detail'); ?>
+      </div>
+
+      <div id="page-setting" class="page-content hidden">
+        <?!= include('views/Setting'); ?>
+      </div>
+
+      <div id="page-fullNotification" class="page-content hidden">
+        <?!= include('views/FullNotifications'); ?>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- JAVASCRIPT INCLUDES (Modular Script Components) -->
+  <?!= include('scripts/Utils_JS'); ?>
+  <?!= include('scripts/Main_JS'); ?>
+  <?!= include('scripts/Notification_JS'); ?>
+  <?!= include('scripts/JobDetail_Lifecycle_JS'); ?>
+  <?!= include('scripts/JobDetail_Table_JS'); ?>
+  <?!= include('scripts/Finance_JS'); ?>
+  <?!= include('scripts/Dashboard_JS'); ?>
+  <?!= include('scripts/Mastercase_Wizard_JS'); ?>
+  <?!= include('scripts/Mastercase_Form_JS'); ?>
+  <?!= include('scripts/Setting_JS'); ?>
+  <?!= include('scripts/Auth_JS'); ?>
+
+</body>
+</html>

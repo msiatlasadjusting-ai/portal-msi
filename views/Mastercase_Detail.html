@@ -1,0 +1,345 @@
+<div class="flex flex-col min-h-screen font-inter p-4 bg-slate-100">
+
+  <!-- HEADER & NAVIGASI -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-6 border-b border-slate-200 gap-4">
+    <div class="flex items-center text-slate-800">
+      <button type="button" onclick="goBack()"
+        class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold p-2.5 rounded-xl transition shadow-sm flex items-center justify-center"
+        title="Kembali">
+        <i data-lucide="arrow-left" class="w-4 h-4 text-slate-700"></i>
+      </button>
+      <div class="ml-4">
+        <div class="flex items-center gap-2">
+          <h2 class="text-2xl font-bold text-slate-900">Job Details #<span id="detailJobNo">8001</span></h2>
+          <span
+            class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200"
+            id="detailStatusBadge">PAID</span>
+        </div>
+        <p class="text-xs text-slate-500 mt-0.5">Informasi lengkap inspeksi klaim Loss Adjusting & rincian penagihan</p>
+      </div>
+    </div>
+
+    <!-- Tombol Aksi Halaman Detail (TOMBOL DRIVE DIPINDAH KE SINI) -->
+    <div class="flex items-center gap-2">
+      <!-- Container Link Google Drive -->
+      <div id="detailDriveFolderBtn">
+        <!-- Terisi via JS -->
+      </div>
+
+      <button onclick="printCurrentJobToPDF()"
+        class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-2"
+        title="Cetak PDF">
+        <i data-lucide="printer" class="w-4 h-4 text-slate-600"></i> Cetak PDF
+      </button>
+
+      <button id="detailEditBtn" onclick="editMastercaseFromDetail()"
+        class="bg-[#EC1F27] hover:bg-red-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition shadow-md shadow-red-900/10 flex items-center gap-2">
+        <i data-lucide="edit-3" class="w-4 h-4"></i> Edit Case
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTAINER RINGKASAN DATA -->
+  <div class="space-y-6">
+
+    <!-- SEKSI 1: INFORMASI UTAMA & KLIEN -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
+      <h3 class="text-xs font-bold text-[#EC1F27] uppercase tracking-wider border-b pb-2.5 border-slate-100 flex items-center gap-2">
+        <i data-lucide="info" class="w-4 h-4 text-[#EC1F27]"></i> Informasi Utama & Klien
+      </h3>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-xs">
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Instruction Date</span>
+          <span class="text-slate-800 font-semibold text-sm" id="detailInstructionDate">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">PIC / Lead Adjuster</span>
+          <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 font-bold text-xs"
+            id="detailPic">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Ref MSI</span>
+          <span class="font-mono text-slate-800 font-semibold text-xs" id="detailRefMsi">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Ref Client / No. Klaim</span>
+          <span class="font-mono text-slate-700 font-semibold text-xs" id="detailRefClient">-</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-xs pt-4 border-t border-slate-100">
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Client (Insurer)</span>
+          <span class="text-slate-900 font-bold" id="detailClient">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Broker / Agent</span>
+          <span class="text-slate-700 font-medium" id="detailBroker">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Lokasi Kantor Client</span>
+          <span class="text-slate-800 font-medium" id="detailClientOfficeLocation">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">PIC Client</span>
+          <span class="text-slate-800 font-medium" id="detailClientPicPerson">-</span>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-100 text-xs">
+        <span class="text-slate-400 font-medium block mb-1">Owner / Client's Customer (Insured)</span>
+        <span class="text-slate-900 font-bold text-sm block" id="detailOwnerCustomer">-</span>
+      </div>
+    </div>
+
+    <!-- SEKSI 2: STAGE PROGRESS & MILESTONE TIMELINE (VERSI TAMPILAN BARU MULTI-STAGE) -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+      <h3 class="text-xs font-bold text-[#EC1F27] uppercase tracking-wider border-b pb-2 border-slate-100 flex items-center gap-2">
+        <i data-lucide="git-commit" class="w-4 h-4 text-[#EC1F27]"></i> Progress Stage & PIC Handlers
+      </h3>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+        
+        <!-- CARD STAGE 2: SITE SURVEY -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2.5">
+          <div class="flex items-center justify-between border-b pb-2 border-slate-200/80">
+            <span class="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+              <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold">2</span>
+              Site Survey
+            </span>
+            <span id="detailBadgeStage2" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600">Pending</span>
+          </div>
+          <div>
+            <span class="text-slate-400 text-[11px] block">Handler:</span>
+            <span class="font-bold text-slate-800" id="detailStage2Pic">-</span>
+          </div>
+          <div>
+            <span class="text-slate-400 text-[11px] block">Jadwal Survei:</span>
+            <span class="font-semibold text-slate-700 text-[11px]" id="detailSurveyStartFinishDates">-</span>
+          </div>
+        </div>
+
+        <!-- CARD STAGE 3: INTERIM REPORT -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2.5">
+          <div class="flex items-center justify-between border-b pb-2 border-slate-200/80">
+            <span class="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+              <span class="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold">3</span>
+              Interim Report
+            </span>
+            <span id="detailBadgeStage3" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600">Pending</span>
+          </div>
+          <div>
+            <span class="text-slate-400 text-[11px] block">Handler:</span>
+            <span class="font-bold text-slate-800" id="detailStage3Pic">-</span>
+          </div>
+          <div>
+            <span class="text-slate-400 text-[11px] block">Tgl Kirim Laporan:</span>
+            <span class="font-semibold text-emerald-600 text-[11px]" id="detailSurveyReportSentOn">-</span>
+          </div>
+          <div class="text-[10px] text-slate-500 bg-white p-2 rounded border border-slate-100 italic truncate" id="detailStage3Remarks" title="-">
+            -
+          </div>
+        </div>
+
+        <!-- CARD STAGE 4: FEE & EXPENSES (ADJUSTING) -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2.5">
+          <div class="flex items-center justify-between border-b pb-2 border-slate-200/80">
+            <span class="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+              <span class="w-5 h-5 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center text-[10px] font-bold">4</span>
+              Fee & Expenses
+            </span>
+            <span id="detailBadgeStage4" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600">Pending</span>
+          </div>
+          <div>
+            <span class="text-slate-400 text-[11px] block">Handler:</span>
+            <span class="font-bold text-slate-800" id="detailStage4Pic">-</span>
+          </div>
+          <div>
+            <span class="text-slate-400 text-[11px] block">Progress LOP:</span>
+            <span class="font-semibold text-slate-700 text-[11px]" id="detailLopDatesInfo">LOP: - | Approved: -</span>
+          </div>
+        </div>
+
+        <!-- CARD STAGE 5: INVOICING & SETTLEMENT -->
+        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2.5">
+          <div class="flex items-center justify-between border-b pb-2 border-slate-200/80">
+            <span class="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+              <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold">5</span>
+              Invoicing & Paid
+            </span>
+            <span id="detailBadgeStage5" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-600">Pending</span>
+          </div>
+          <div>
+            <span class="text-slate-400 text-[11px] block">Finance Handler:</span>
+            <span class="font-bold text-slate-800" id="detailStage5Pic">-</span>
+          </div>
+          <div>
+            <span class="text-slate-400 text-[11px] block">Status Pelunasan:</span>
+            <span class="font-semibold text-slate-700 text-[11px]" id="detailPaidStatusInfo">Inv: - | Paid: -</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SEKSI 3: DETAIL SURVEI & OBJEK KLAIM -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-5">
+      <h3 class="text-xs font-bold text-[#EC1F27] uppercase tracking-wider border-b pb-2.5 border-slate-100 flex items-center gap-2">
+        <i data-lucide="clipboard-list" class="w-4 h-4 text-[#EC1F27]"></i> Detail Survei & Objek
+      </h3>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 text-xs">
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Type of Survey</span>
+          <span class="px-2.5 py-1 rounded-lg font-bold bg-blue-50 text-blue-600 border border-blue-100 inline-block"
+            id="detailTypeOfSurvey">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Line of Business (LOB)</span>
+          <span class="text-slate-800 font-semibold" id="detailLob">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Accident Cause</span>
+          <span class="text-slate-800 font-semibold" id="detailAccident">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Lokasi Survei</span>
+          <span class="text-slate-800 font-semibold flex items-center gap-1" id="detailLocation">
+            <i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-500"></i> -
+          </span>
+        </div>
+      </div>
+
+      <div class="pt-4 border-t border-slate-100 text-xs">
+        <span class="text-slate-400 font-medium block mb-1.5">Object / Vessel / Unit</span>
+        <div class="text-slate-800 font-medium leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200/70"
+          id="detailObjectVesselUnit">-</div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 text-xs pt-4 border-t border-slate-100">
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Date of Loss (DOL)</span>
+          <span class="text-slate-700 font-semibold text-sm" id="detailDol">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Survey Date</span>
+          <span class="text-slate-700 font-semibold text-sm" id="detailSurveyDate">-</span>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Mulai Penyusunan Laporan</span>
+          <span class="text-slate-800 font-semibold text-sm block" id="detailReportPrepStartDate">-</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEKSI 4: FINANSIAL & RINGKASAN PENAGIHAN -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Biaya & Expenses -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+        <h3 class="text-xs font-bold text-[#EC1F27] uppercase tracking-wider border-b pb-2 border-slate-100 flex items-center gap-2">
+          <i data-lucide="coins" class="w-4 h-4 text-[#EC1F27]"></i> Biaya & Expenses
+        </h3>
+
+        <div class="space-y-3 text-xs">
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">Fee Survey (IDR)</span>
+            <span class="font-mono font-bold text-slate-900 text-sm" id="detailFeeIdr">Rp 0</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">TAX Basis / DPP (IDR)</span>
+            <span class="font-mono text-slate-700 font-semibold" id="detailTaxBasisIdr">Rp 0</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">Kasbon / IOU (IDR)</span>
+            <span class="font-mono text-slate-500" id="detailIouIdr">Rp 0</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">Actual Expenses (IDR)</span>
+            <span class="font-mono text-slate-700" id="detailExpensesAct">Rp 0</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">Admin Cost (IDR)</span>
+            <span class="font-mono text-slate-700" id="detailAdminCost">Rp 0</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">Load (IDR)</span>
+            <span class="font-mono text-slate-700" id="detailLoad">Rp 0</span>
+          </div>
+          <div class="flex justify-between py-2 bg-slate-50 px-3 rounded-xl">
+            <span class="font-bold text-slate-800">Total Expenses (IDR)</span>
+            <span class="font-mono font-bold text-slate-900" id="detailExpenses">Rp 0</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">Reimburse Settled (+/-)</span>
+            <span class="font-mono font-semibold" id="detailReimburseSettled">Rp 0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Invoicing & Pelunasan -->
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+        <h3 class="text-xs font-bold text-[#EC1F27] uppercase tracking-wider border-b pb-2 border-slate-100 flex items-center gap-2">
+          <i data-lucide="receipt" class="w-5 h-5 text-[#EC1F27]"></i> Invoicing & Pelunasan
+        </h3>
+
+        <div class="space-y-3 text-xs">
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">PPN 11% (IDR)</span>
+            <span class="font-mono text-slate-700" id="detailVat11">Rp 0</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">Invoice Amount (Gross)</span>
+            <span class="font-mono font-bold text-slate-900" id="detailInvoiceAmount">Rp 0</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">Potongan PPh 23 (IDR)</span>
+            <span class="font-mono text-rose-600 font-semibold" id="detailPph23">- Rp 0</span>
+          </div>
+          <div class="flex justify-between py-2 bg-blue-50/70 px-3 rounded-xl">
+            <span class="font-bold text-blue-900">Expected Net Payment</span>
+            <span class="font-mono font-bold text-blue-700 text-sm" id="detailInvoicePaymentNetPph23">Rp 0</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">Client Payment Received</span>
+            <span class="font-mono font-bold text-emerald-600" id="detailClientPayment">Rp 0</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">Payment Variance / Selisih</span>
+            <span class="font-mono font-semibold" id="detailSelisih">Rp 0</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">Invoice Date & Paid Date</span>
+            <span class="text-slate-700 font-medium" id="detailInvoiceAndPaidDate">-</span>
+          </div>
+          <div class="flex justify-between py-1.5 border-b border-slate-50">
+            <span class="text-slate-500">No. Faktur Pajak & Bupot</span>
+            <span class="text-slate-700 font-mono text-[11px]" id="detailTaxInfo">-</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SEKSI 5: REMARKS & CATATAN -->
+    <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+      <h3 class="text-xs font-bold text-[#EC1F27] uppercase tracking-wider border-b pb-2 border-slate-100 flex items-center gap-2">
+        <i data-lucide="message-square" class="w-4 h-4 text-[#EC1F27]"></i> Catatan / Remarks
+      </h3>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">Operational Remarks (Surveyor)</span>
+          <p class="text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100 min-h-[60px]" id="detailRemarks">-</p>
+        </div>
+        <div>
+          <span class="text-slate-400 font-medium block mb-1">FAT Remarks (Finance / Accounting)</span>
+          <p class="text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100 min-h-[60px]" id="detailRemarksFat">-</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>

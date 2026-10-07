@@ -1,0 +1,337 @@
+<!-- FILE: scripts/JobDetail_Lifecycle_JS.html -->
+<script>
+// =========================================================
+// JOB DETAIL LIFECYCLE & SLA STATUS CONTROLLER
+// Pengelolaan evaluasi status SLA, penentuan status dinamis case, dan rendering lifecycle audit trail
+// =========================================================
+
+// =========================================================
+// GET JOB WARNING BADGE
+// Menghitung status kedaluwarsa (overdue) atau peringatan batas waktu stage dan mengembalikan markup badge
+// =========================================================
+function getJobWarningBadge(item) {
+  var jobStatus = getCalculatedJobStatus(item);
+  if (jobStatus === "Invoice Paid" || jobStatus === "Cancelled") return "";
+
+  var instDate = item["Instruction Date"] || "";
+  var s2Finish = item["Survey Finish Date"] || item["surveyFinishDate"] || "";
+  var s3Finish = item["Report Sent Date"] || item["Survey Report Sent on"] || "";
+  var s5Start  = item["Invoice Date"] || item["Invoice date"] || "";
+
+  var activeTargetDate = '-';
+
+  if (!isValidDateStr(s2Finish)) {
+    return ""; 
+  } 
+  else if (!isValidDateStr(s3Finish)) {
+    activeTargetDate = addDaysToDate(s2Finish, 5);
+  } 
+  else if (isValidDateStr(s5Start)) {
+    activeTargetDate = addDaysToDate(s5Start, 7);
+  } else {
+    return "";
+  }
+
+  if (!isValidDateStr(activeTargetDate) || activeTargetDate === '-') return "";
+
+  var daysLeft = getDaysDiffFromToday(activeTargetDate);
+  if (daysLeft === null) return "";
+
+  if (daysLeft < 0) {
+    return '<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-rose-100 text-rose-700 border border-rose-200 mt-1 shadow-xs animate-pulse" title="Target Stage Terlewati!">' +
+           '<i class="fa-solid fa-triangle-exclamation"></i> Overdue ' + Math.abs(daysLeft) + ' Hari</span>';
+  } else if (daysLeft <= 3) {
+    return '<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 mt-1 shadow-xs">' +
+           '<i class="fa-solid fa-clock"></i> H-' + daysLeft + ' Target</span>';
+  }
+
+  return "";
+}
+
+// =========================================================
+// GET CALCULATED JOB STATUS
+// Menentukan tahapan status terkini Mastercase berdasarkan ketersediaan tanggal-tanggal milestone
+// =========================================================
+function getCalculatedJobStatus(item) {
+  var rawStatus = String(item["Status"] || "").trim();
+  if (rawStatus === "Cancelled") return "Cancelled";
+
+  var surveyStart = item["Survey Start Date"] || item["surveyStartDate"] || item["Survey Date"] || "";
+  var surveyFinish = item["Survey Finish Date"] || item["surveyFinishDate"] || "";
+  var reportStart = item["Report Start Date"] || item["reportPreparationStartDate"] || "";
+  var reportSent = item["Report Sent Date"] || item["Survey Report Sent on"] || "";
+  var lopStart = item["LOP Start Date"] || item["lopStartDate"] || "";
+  var lopApp = item["LOP Approved Date"] || item["lopApprovedDate"] || "";
+  var invDate = item["Invoice Date"] || item["Invoice date"] || "";
+  var paidOn = item["Paid Date"] || item["Paid on"] || "";
+
+  if (isValidDateStr(paidOn)) return "Invoice Paid";
+  if (isValidDateStr(invDate)) return "Invoice Sent";
+  if (isValidDateStr(lopApp)) return "Awaiting Invoice";
+  if (isValidDateStr(reportSent)) return "Report Sent";
+  if (isValidDateStr(reportStart)) return "Drafting Report";
+  if (isValidDateStr(surveyStart) || isValidDateStr(surveyFinish)) return "In Site Survey";
+
+  return "On Process";
+}
+
+// =========================================================
+// RENDER PIPELINE STEPPER
+// Merender indikator visual progres 5 tahapan (Instruction, Survey, Report, Adjust, Invoice)
+// =========================================================
+function renderPipelineStepper(item) {
+  var s1Finish = item["Instruction Date"] || "";
+  var s2Finish = item["Survey Finish Date"] || item["surveyFinishDate"] || "";
+  var s3Finish = item["Report Sent Date"] || item["Survey Report Sent on"] || "";
+  var s4Finish = item["LOP Approved Date"] || item["lopApprovedDate"] || "";
+  var s5Finish = item["Paid Date"] || item["Paid on"] || "";
+
+  var isSt1Done = isValidDateStr(s1Finish);
+  var isSt2Done = isValidDateStr(s2Finish);
+  var isSt3Done = isValidDateStr(s3Finish);
+  var isSt4Done = isValidDateStr(s4Finish);
+  var isSt5Done = isValidDateStr(s5Finish);
+
+  var activeStage = !isSt1Done ? 1 : (!isSt2Done ? 2 : (!isSt3Done ? 3 : (!isSt4Done ? 4 : (!isSt5Done ? 5 : 6))));
+
+  var stages = [
+    { num: 1, label: "Instruction", isDone: isSt1Done },
+    { num: 2, label: "Survey", isDone: isSt2Done },
+    { num: 3, label: "Report", isDone: isSt3Done },
+    { num: 4, label: "Adjust", isDone: isSt4Done },
+    { num: 5, label: "Invoice", isDone: isSt5Done }
+  ];
+
+  var html = '<div class="inline-flex items-center gap-1.5 text-[10px] font-semibold">';
+  stages.forEach(function (st, idx) {
+    var circleStyle = "bg-slate-50 text-slate-400 border-slate-200";
+    var labelStyle = "text-slate-400";
+    var content = st.num;
+
+    if (st.isDone) {
+      circleStyle = "bg-emerald-500 text-white border-emerald-500 shadow-sm";
+      labelStyle = "text-emerald-600 font-bold";
+      content = '<i class="fa-solid fa-check text-[9px]"></i>';
+    } else if (st.num === activeStage) {
+      circleStyle = "bg-blue-600 text-white border-blue-600 ring-4 ring-blue-100 font-bold";
+      labelStyle = "text-blue-600 font-bold";
+    }
+
+    html += '<div class="flex items-center gap-1.5">' +
+      '<div class="flex flex-col items-center gap-0.5">' +
+      '<div class="w-5 h-5 rounded-full flex items-center justify-center border text-[10px] transition-all ' + circleStyle + '">' + content + '</div>' +
+      '<span class="text-[9px] mt-0.5 ' + labelStyle + '">' + st.label + '</span>' +
+      '</div>';
+
+    if (idx < stages.length - 1) {
+      var lineStyle = st.isDone ? "bg-emerald-500" : "bg-slate-200";
+      html += '<div class="w-4 h-0.5 ' + lineStyle + ' -mt-3.5"></div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+// =========================================================
+// TOGGLE ROW EXPAND
+// Membuka atau menutup baris detail audit trail timeline milestone pada tabel
+// =========================================================
+function toggleRowExpand(jobNo) {
+  var row = document.getElementById("expand_" + jobNo);
+  var arrow = document.getElementById("arrow_" + jobNo);
+  if (row && arrow) {
+    if (row.classList.contains("hidden")) {
+      row.classList.remove("hidden");
+      arrow.innerHTML = '<i class="fa-solid fa-chevron-down text-xs text-[#EC1F27]"></i>';
+    } else {
+      row.classList.add("hidden");
+      arrow.innerHTML = '<i class="fa-solid fa-chevron-right text-xs"></i>';
+    }
+  }
+}
+
+function toggleJobMilestoneDetails(rowIndex, jobNo) {
+  toggleRowExpand(jobNo);
+}
+
+// =========================================================
+// RENDER EXPAND AUDIT TRAIL
+// Merender konten tabel detail milestone, durasi SLA, target date, dan evidence
+// =========================================================
+function renderExpandAuditTrail(item) {
+  var jobNo = item["Job Number"] || "";
+  var instDate = item["Instruction Date"] || "";
+  var leadPic = item["Lead PIC"] || item["PIC"] || "";
+
+  var calculateDays = function (d1Str, d2Str) {
+    if (!isValidDateStr(d1Str) || !isValidDateStr(d2Str)) return 0;
+    var d1 = new Date(d1Str);
+    var d2 = new Date(d2Str);
+    d1.setHours(0, 0, 0, 0);
+    d2.setHours(0, 0, 0, 0);
+    var diff = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  };
+
+  var evalStageStatus = function(sDate, fDate, targetDate) {
+    if (isValidDateStr(fDate)) return "Completed";
+    if (isValidDateStr(targetDate) && getDaysDiffFromToday(targetDate) < 0) return "Overdue";
+    if (isValidDateStr(sDate)) return "On Process";
+    return "Pending";
+  };
+
+  var s2Start = item["Survey Start Date"] || item["surveyStartDate"] || item["Survey Date"] || "";
+  var s2Finish = item["Survey Finish Date"] || item["surveyFinishDate"] || "";
+  var s3Start = item["Report Start Date"] || item["reportPreparationStartDate"] || "";
+  var s3Finish = item["Report Sent Date"] || item["Survey Report Sent on"] || "";
+  var s4Start = item["LOP Start Date"] || item["lopStartDate"] || "";
+  var s4Finish = item["LOP Approved Date"] || item["lopApprovedDate"] || "";
+  var s5Start = item["Invoice Date"] || item["Invoice date"] || "";
+  var s5Finish = item["Paid Date"] || item["Paid on"] || "";
+
+  var cleanS2Start = isValidDateStr(s2Start) ? s2Start : '-';
+  var cleanS2Finish = isValidDateStr(s2Finish) ? s2Finish : '-';
+  var cleanS3Start = isValidDateStr(s3Start) ? s3Start : '-';
+  var cleanS3Finish = isValidDateStr(s3Finish) ? s3Finish : '-';
+  var cleanS4Start = isValidDateStr(s4Start) ? s4Start : '-';
+  var cleanS4Finish = isValidDateStr(s4Finish) ? s4Finish : '-';
+  var cleanS5Start = isValidDateStr(s5Start) ? s5Start : '-';
+  var cleanS5Finish = isValidDateStr(s5Finish) ? s5Finish : '-';
+
+  var t1Date = isValidDateStr(instDate) ? instDate : '-';
+  var t2Date = isValidDateStr(cleanS2Finish) ? cleanS2Finish : (isValidDateStr(cleanS2Start) ? cleanS2Start : '-');
+  var t3Date = isValidDateStr(cleanS3Finish) ? cleanS3Finish : (isValidDateStr(cleanS2Finish) ? addDaysToDate(cleanS2Finish, 5) : '-');
+  var t4Date = isValidDateStr(cleanS4Finish) ? cleanS4Finish : (isValidDateStr(cleanS3Finish) ? addDaysToDate(cleanS3Finish, 3) : '-');
+  var t5Date = isValidDateStr(cleanS5Finish) ? cleanS5Finish : (isValidDateStr(cleanS5Start) ? addDaysToDate(cleanS5Start, 7) : '-');
+
+  var stages = [
+    {
+      no: 1,
+      name: "Assignment & Insured Contact",
+      startDate: isValidDateStr(instDate) ? instDate : '-',
+      targetDate: t1Date,
+      finishDate: isValidDateStr(instDate) ? instDate : '-',
+      sla: "0 Hari",
+      handler: leadPic,
+      status: "Completed",
+      evidence: "Surat penugasan diterima & tercatat."
+    },
+    {
+      no: 2,
+      name: "Site Inspection & Joint Survey",
+      startDate: cleanS2Start,
+      targetDate: t2Date,
+      finishDate: cleanS2Finish,
+      sla: calculateDays(cleanS2Start, cleanS2Finish) + " Hari",
+      handler: item["Survey PIC Handler"] || item["Lead PIC"] || item["PIC"] || leadPic,
+      status: evalStageStatus(cleanS2Start, cleanS2Finish, t2Date),
+      evidence: item["Survey Remarks"] || item["Remarks"] || '-'
+    },
+    {
+      no: 3,
+      name: "Interim Report & Cause Analysis",
+      startDate: cleanS3Start,
+      targetDate: t3Date,
+      finishDate: cleanS3Finish,
+      sla: calculateDays(cleanS3Start, cleanS3Finish) + " Hari",
+      handler: item["Report PIC Handler"] || item["stage3PicHandler"] || leadPic,
+      status: evalStageStatus(cleanS3Start, cleanS3Finish, t3Date),
+      evidence: item["Report Remarks"] || item["stage3Remarks"] || '-'
+    },
+    {
+      no: 4,
+      name: "Final Adjustment & LOP",
+      startDate: cleanS4Start,
+      targetDate: t4Date,
+      finishDate: cleanS4Finish,
+      sla: calculateDays(cleanS4Start, cleanS4Finish) + " Hari",
+      handler: item["LOP PIC Handler"] || item["stage4PicHandler"] || leadPic,
+      status: evalStageStatus(cleanS4Start, cleanS4Finish, t4Date),
+      evidence: item["LOP Remarks"] || item["stage4Remarks"] || '-'
+    },
+    {
+      no: 5,
+      name: "Fee Invoicing & Settlement",
+      startDate: cleanS5Start,
+      targetDate: t5Date,
+      finishDate: cleanS5Finish,
+      sla: calculateDays(cleanS5Start, cleanS5Finish) + " Hari",
+      handler: item["Invoice PIC Handler"] || item["stage5PicHandler"] || "Finance",
+      status: evalStageStatus(cleanS5Start, cleanS5Finish, t5Date),
+      evidence: item["Invoice Remarks"] || item["stage5Remarks"] || item["Remarks FAT"] || '-'
+    }
+  ];
+
+  var html = '<div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">' +
+    '<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-3 border-slate-100">' +
+    '<div class="flex items-center gap-3">' +
+    '<span class="w-1.5 h-5 bg-[#EC1F27] rounded-full"></span>' +
+    '<h4 class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">' +
+    '<i class="fa-regular fa-file-lines text-slate-400"></i> LIFECYCLE AUDIT TRAIL & TIMELINE MILESTONE: JOB #' + jobNo +
+    '</h4>' +
+    '<span class="px-2.5 py-0.5 bg-blue-50 text-blue-700 text-[10px] font-bold rounded-full border border-blue-100">SLA Target: 14 Hari Kalender</span>' +
+    '</div>' +
+    '</div>' +
+
+    '<div class="overflow-x-auto">' +
+    '<table class="w-full text-left text-xs border-collapse">' +
+    '<thead>' +
+    '<tr class="text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">' +
+    '<th class="pb-2.5 font-semibold">MILESTONE STAGE</th>' +
+    '<th class="pb-2.5 font-semibold">START DATE</th>' +
+    '<th class="pb-2.5 font-semibold text-[#EC1F27]">TARGET DATE</th>' + 
+    '<th class="pb-2.5 font-semibold">FINISH DATE</th>' +
+    '<th class="pb-2.5 font-semibold">DURATION (SLA)</th>' +
+    '<th class="pb-2.5 font-semibold">PIC HANDLER</th>' +
+    '<th class="pb-2.5 font-semibold">STATUS</th>' +
+    '<th class="pb-2.5 font-semibold">EVIDENCE & REMARKS</th>' +
+    '</tr>' +
+    '</thead>' +
+    '<tbody class="divide-y divide-slate-50 text-slate-700">';
+
+  stages.forEach(function (st) {
+    var numBg = "bg-slate-100 text-slate-400";
+    var statusColor = "text-slate-400";
+    var dotColor = "bg-slate-300";
+
+    if (st.status === "Completed") {
+      numBg = "bg-emerald-100 text-emerald-700 font-bold";
+      statusColor = "text-emerald-600";
+      dotColor = "bg-emerald-500";
+    } else if (st.status === "On Process") {
+      numBg = "bg-blue-600 text-white font-bold";
+      statusColor = "text-blue-600";
+      dotColor = "bg-blue-600 animate-pulse";
+    } else if (st.status === "Overdue") {
+      numBg = "bg-rose-600 text-white font-bold";
+      statusColor = "text-rose-600 font-black";
+      dotColor = "bg-rose-600 animate-ping";
+    }
+
+    html += '<tr class="hover:bg-slate-50/80 transition">' +
+      '<td class="py-3 pr-3 font-medium text-slate-800">' +
+      '<div class="flex items-center gap-2.5">' +
+      '<span class="w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 ' + numBg + '">' + st.no + '</span>' +
+      '<span class="' + (st.status === "Overdue" ? "text-rose-700 font-bold" : "text-slate-800") + '">' + st.name + '</span>' +
+      '</div>' +
+      '</td>' +
+      '<td class="py-3 px-2 text-slate-600">' + st.startDate + '</td>' +
+      '<td class="py-3 px-2 font-bold text-slate-800 bg-rose-50/50 rounded">' + st.targetDate + '</td>' +
+      '<td class="py-3 px-2 text-slate-600">' + st.finishDate + '</td>' +
+      '<td class="py-3 px-2 text-slate-600"><span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-medium">' + st.sla + '</span></td>' +
+      '<td class="py-3 px-2 font-medium text-slate-700">' + st.handler + '</td>' +
+      '<td class="py-3 px-2">' +
+      '<span class="inline-flex items-center gap-1.5 font-bold text-[11px] ' + statusColor + '">' +
+      '<span class="w-1.5 h-1.5 rounded-full ' + dotColor + '"></span>' +
+      st.status +
+      '</span>' +
+      '</td>' +
+      '<td class="py-3 pl-2 text-slate-500 max-w-xs truncate">' + st.evidence + '</td>' +
+      '</tr>';
+  });
+
+  html += '</tbody></table></div></div>';
+  return html;
+}
+</script>
